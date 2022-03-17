@@ -8,7 +8,6 @@ library(Kendall)
 library(viridis)
 library(ggpubr)
 library(reshape2)
-library(readr)
 
 source("JQM_Function.R")
 source("fun_volcano.R")
