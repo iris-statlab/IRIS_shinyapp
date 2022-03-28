@@ -16,13 +16,16 @@ source("fun_volcano.R")
 ui <- fluidPage(
   useShinyjs(),
   # App title ----
-  titlePanel("Individual Reference Intervals"),
-  
+  headerPanel("Individual Reference Intervals estimation workflow v.1.0"),
+
   # Sidebar layout with input and output definitions ----
   sidebarLayout(
     # Sidebar panel for inputs ----
     sidebarPanel(width=3,
-                 # conditionalPanel("input.tabs1=='Description'",
+                 # conditionalPanel("input.tabs1=='Manual'",
+                 #                  actionButton(inputId = "start",  label = "START", icon = icon("play", lib = "glyphicon"))
+                 #                  
+                 # 
                  #                  fileInput("file1", "Choose CSV file", multiple = FALSE,
                  #                            accept = c("text/csv","text/comma-separated-values,text/plain",".csv"),
                  #                            width = NULL, buttonLabel = "Browse...",
@@ -48,9 +51,9 @@ ui <- fluidPage(
                  #                  tags$hr(),
                  #                  # Input: Checkbox if the sample data will be used ----
                  #                  checkboxInput("sample_data", "Use sample data", TRUE)
-                 #                  
-                 # ),
-                 # 
+# 
+#                  ),
+
                  conditionalPanel(condition="input.tabs1=='Data Upload'",
                                   fileInput("file1", "Choose CSV file", multiple = FALSE,
                                             accept = c("text/csv","text/comma-separated-values,text/plain",".csv"),
@@ -116,7 +119,21 @@ ui <- fluidPage(
     # Main panel for displaying outputs ----
     mainPanel(
       tabsetPanel(
-        tabPanel("Description"
+        tabPanel("Manual",
+                 h4("The workflow of Individual Reference Intervals (IRIs) estimation"),
+                 HTML('<br/>'),
+                 HTML('<p> This tool can be used to perform an IRI estimation for a particular biomarker/clinical test. To ensure the quality of the data, a trend and time analysis as a part of the data quality checks needs to be performed before computing the IRI. It includes: (i) outliers detection, (ii) testing for the presence of a monotonic trend, and (iii) individual variance checking.</p>'),
+                 HTML('<p> In order to use this tool, load your data set using <em>Data Upload</em> tab. The data must be in a <em>wide format</em> and the first two columns should indicate the subject and time indices. As an example:</p>'),
+                 HTML('<center><img src="image/data_upload_example.PNG" width = "100%"></center>'),
+                 
+                 HTML('<p> An overview of trends and correlations for all biomarkers is presented in the <em>Volcano Plot</em> tab.</p>'),
+                 HTML('<br/>'),
+                 HTML('<p> In the <em> Trend & Time Analysis</em>, you can choose a biomarker/clinical test that will be examined. An outlier threshold should also be chosen, the default is 2.3 which corresponds to the 99th and 1st percentile threshold.</p>'),
+                 HTML('<br/>'),
+                 HTML('<p> After all the step in the <em>Trend & Time Analysis</em> has been performed, the IRI can be computed in the <em>IRI Estimation</em> tab. Subjects with significant monotonic trends, high correlations with time, and dissimilar variances are marked and will be excluded from the IRI estimation. An example of estimated IRIs:</p>'),
+                 HTML('<center><img src="image/iri_example.PNG" width = "100%"></center>'),
+                 HTML('<p> For each individual, the IRIs are indicated by the blue error bars. They were estimated by the previous/historical measurements indicated by the grey and the red dots, and are designed to interpret the new or future measurements i.e. the green dots.</p>'),
+                 HTML('<br/>')
         ),
         
         tabPanel("Data Upload",
@@ -164,16 +181,15 @@ ui <- fluidPage(
                             DT::dataTableOutput("excsub_all"),
                             h4(textOutput(outputId = "choose.sub")),
                             plotOutput("plot") %>% withSpinner(color="#0dc5c1"),
-                            actionButton("submit", "Submit report"),
+                            # actionButton("submit", "Submit report"),
                             actionButton("download", "Download report")
                             
                    )
                  )
                  ),
         
-        id="tabs1",
-        tabPanel("Report"
-        )
+        id="tabs1"
+        # tabPanel("Report")
       )
     )
   )
@@ -310,10 +326,15 @@ server <- function(session, input, output) {
   # plot outlier
   output$plot.out<-renderPlot({
     if(input$run){
-      d <- trend()
-      d$df2$time<-as.factor(d$df2$time)
-      ggplot(d$df2, aes(x=time, color=time))+
-        geom_point(aes(y=y), size=2)+
+      d<-trend()
+      d2<-d$df2
+      trend<-td()
+      d.out<-trend$d.out
+      d2<-d2 %>% left_join(., d.out[,c(1:2,ncol(d.out),ncol(d.out)-1)], by=c("subject","time"))
+      
+      d2$time<-as.factor(d2$time)
+      ggplot(d2, aes(x=time, color=time))+
+        geom_point(aes(y=y,size=pct))+
         scale_colour_viridis(discrete = T)+
         geom_hline(data=d$d_mad, aes(yintercept = mad_up), color="red")+
         geom_hline(data=d$d_mad, aes(yintercept = mad_low), color="red")+
@@ -323,7 +344,7 @@ server <- function(session, input, output) {
         theme(strip.text = element_text(size=15),
               title = element_text(size=14),
               text = element_text(size=12),
-              legend.text = element_text(size=14))
+              legend.position = "none")
     }
   })
   output$click_info <- renderPrint({
@@ -342,9 +363,11 @@ server <- function(session, input, output) {
       m[i]<-abs(d2$y[i]-d2$y[i+1])
     }
     inc<-min(m[m!=0], na.rm = T)
-    d2<-d2 %>% filter(., res==1)
+    #d2<-d2 %>% filter(., res==1) $only refer to points outside threshold
     out.oth<-d2[d2$subject==subj & d2$time==tm & d2$y>=y-inc & d2$y<=y+inc,]$count.id
-    paste0("Subject ",subj, ": There are ",out.oth," other parameters (out of 92) with outliers")
+    out.pct<-d2[d2$subject==subj & d2$time==tm & d2$y>=y-inc & d2$y<=y+inc,]$pct
+    out.pct<-round(out.pct*100, digits = 2)
+    paste0("Subject ",subj, ": There are ",out.oth," other parameters (",out.pct,"%) with outliers")
     #str(input$plot_click)
   })
   
@@ -447,22 +470,25 @@ server <- function(session, input, output) {
     d2 <- varcheck()
     exc<-unique(c(d1$exc_sub, d2$out.mad))
 
-    paste0(length(exc), " subjects with trends and high variances:")
+    #paste0(length(exc), " subjects with trends and high variances:")
+    paste0(length(exc), " subjects will be excluded from the IRI estimation:")
+    
   })
   
-  output$choose.sub <- renderText({
-    # d1 <- trend()
-    # d2 <- varcheck()
-    # exc<-unique(c(d1$exc_sub, d2$out.mad))
-    # 
-    paste0("Select subjects to exclude from the IRI estimation:")
-  })
+  # output$choose.sub <- renderText({
+  #   # d1 <- trend()
+  #   # d2 <- varcheck()
+  #   # exc<-unique(c(d1$exc_sub, d2$out.mad))
+  #   # 
+  #   paste0("Select subjects to exclude from the IRI estimation:")
+  # })
   
   # table output - final subject with trends and correlations and high variance
   output$excsub_all<-DT::renderDataTable({
     d1 <- trend()
     d2 <- varcheck()
-    Subject<-unique(c(d1$exc_sub, d2$out.mad))
+    #Subject<-unique(c(d1$exc_sub, d2$out.mad))
+    Subject<-c(unique(d1$exc_sub), unique(d2$out.mad))
     Remark<-c(rep("Trend/correlation is present", length(unique(d1$exc_sub))),
               rep("High variance", length(unique(d2$out.mad))))
     data.frame(Subject,Remark)
@@ -493,12 +519,27 @@ server <- function(session, input, output) {
     df2<-df2 %>% left_join(., inc, by="subject")
     df2$outlier<-ifelse(df2$y<df2$mad_low | df2$y>df2$mad_up,1,0)
     df2$outlier<-ifelse(is.na(df2$outlier)==T,0,df2$outlier)
+    df2$outlier<-
+      
+    db<-df2
+    subjects<-unique(db$subject)
+    cnt<-1; db2<-0; db3<-0
+    for(s in subjects) {
+      db.y<-db[(db$subject==s),]
+      db.y$outlier<-ifelse(db.y$time==max(db.y$time),2,db.y$outlier)
+      dba<-db.y
+      db.y<-db.y[(db.y$time!=max(db.y$time)),]
+      
+      db2<-rbind(db2,dba)
+      db3<-rbind(db3,db.y)
+    }
+    df2<-db2[-1,]; df3<-db3[-1,]
 
     alpha<- switch(input$empcov,
                    "85%" = 0.15,
                    "90%" = 0.1,
                    "95%" = 0.05)
-    res<-jqm(db=df2,
+    res<-jqm(db=df3,
              alpha=alpha,
              lambda.u.seq = seq(0.02,0.1,0.02),
              lambda.z.seq = seq(0.5,5,0.5))
@@ -528,7 +569,7 @@ server <- function(session, input, output) {
                  position = position_dodge(width = 0.9),size=2.5) +
       geom_vline(xintercept=seq(1.5, length(unique(df2$subject))-0.5, 1),
                  lwd=0.5, colour="grey") +
-      scale_color_manual(name="Outlying observation", labels=c("No","Yes"), values = c("darkgrey","red"))+
+      scale_color_manual(name="Outlying observation", labels=c("No","Yes","New measurement"), values = c("darkgrey","red", "darkgreen"))+
       labs(x="Participants",y="Measurement",
            title=paste0("IRI of ",names(df)[3]),
            subtitle = paste0("Empirical coverage=",round(res$cov.tot, digits=4))) +
