@@ -18,7 +18,7 @@ jobs:
           r-version: '4.0.4'
       - name: Install dependencies
         run: |
-          install.packages(c('DT', 'shiny', 'shinyjs', 'tidyverse', 'shinycssloaders', 'Kendall', 'viridis', 'ggpubr', 'reshape2', 'quantreg', 'invgamma', 'rsconnect', 'remotes'), type = 'binary')
+          install.packages(c('DT', 'shiny', 'shinyjs', 'tidyverse', 'shinycssloaders', 'Kendall', 'viridis', 'ggpubr', 'reshape2', 'quantreg', 'invgamma', 'rsconnect', 'remotes'))
         shell: Rscript {0} 
       - name: Set Credentials
         run: |
