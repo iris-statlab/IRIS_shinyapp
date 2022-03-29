@@ -10,7 +10,7 @@ env:
 
 jobs:
   deploy-shiny:
-    runs-on: macOS-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
       - uses: r-lib/actions/setup-r@v2
