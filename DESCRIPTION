@@ -1,0 +1,27 @@
+Package: IRI_app
+Title: IRI app
+Version: 0.0.1
+Date: 2022-03-29
+Authors@R: 
+    person(given = "Murih",
+           family = "Pusparum",
+           role = c("aut", "cre"),
+           email = "murih.pusparum@uhasselt.be")
+Description: IRI app
+URL: https://mpviz.shinyapps.io/individual_ri, https://github.com/murihpusparum/IRI_app
+BugReports: https://github.com/murihpusparum/IRI_app/issues
+Imports:
+    DT,
+    shiny, 
+    shinyjs, 
+    tidyverse, 
+    shinycssloaders, 
+    Kendall, 
+    viridis, 
+    ggpubr, 
+    reshape2, 
+    quantreg, 
+    invgamma, 
+    rsconnect, 
+    remotes
+    
