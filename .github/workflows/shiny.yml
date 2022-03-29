@@ -16,10 +16,10 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: '4.0.4'
-      - name: Install dependencies
-        run: |
-          install.packages(c('DT', 'shiny', 'shinyjs', 'tidyverse', 'shinycssloaders', 'Kendall', 'viridis', 'ggpubr', 'reshape2', 'quantreg', 'invgamma', 'rsconnect', 'remotes'))
-        shell: Rscript {0} 
+      - name: Install dependencies and cache
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rsconnect
       - name: Set Credentials
         run: |
           rsconnect::setAccountInfo(name='mpviz', token=${{secrets.SHINYAPPS_TOKEN}}, secret=${{secrets.SHINYAPPS_SECRET}})
