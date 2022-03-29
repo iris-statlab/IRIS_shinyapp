@@ -22,10 +22,9 @@ jobs:
           extra-packages: any::rsconnect
       - name: Set Credentials
         run: |
-          rsconnect::setAccountInfo(name='mpviz', token=${{secrets.SHINYAPPS_TOKEN}}, secret=${{secrets.SHINYAPPS_SECRET}})
-        shell: Rscript {0}
+          Rscript -e "rsconnect::setAccountInfo(name='mpviz', token=${{secrets.SHINYAPPS_TOKEN}}, secret=${{secrets.SHINYAPPS_SECRET}})"
       - name: Deploy to shinyapp.io
         run: |
           setwd('./R')
-          rsconnect::deployApp(appName=${{env.APP_NAME}})
+          rsconnect::deployApp(appName="shiny_app_dev")
         shell: Rscript {0}
