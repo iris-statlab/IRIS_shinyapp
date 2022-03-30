@@ -6,7 +6,7 @@ library(tidyverse)
 library(shinycssloaders)
 library(Kendall)
 library(viridis)
-library(ggpubr)
+library(patchwork)
 library(reshape2)
 library(plotly)
 
@@ -465,7 +465,7 @@ server <- function(session, input, output) {
         geom_hline(yintercept = d$mad.low, color="red")+
         labs(y="Bootstrapped Variances", x="Subject")+
         theme_bw()
-      ggarrange(g1,g2)
+      g1 + g2
     }
   })
   
