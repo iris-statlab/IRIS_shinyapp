@@ -8,6 +8,7 @@ library(Kendall)
 library(viridis)
 library(ggpubr)
 library(reshape2)
+library(plotly)
 
 source("JQM_Function.R")
 source("fun_volcano.R")
@@ -157,11 +158,11 @@ ui <- fluidPage(
                             ),
                    tabPanel("Outlier",
                             h3(textOutput(outputId = "cnt.out")),
-                               plotOutput("plot.out", height=800, 
-                                          click = clickOpts(id = "plot_click"))%>% withSpinner(color="#0dc5c1"),
-                            column(width = 6,
-                                   verbatimTextOutput("click_info")
-                            )
+                            plotlyOutput("plot.out", height=800)%>% withSpinner(color="#0dc5c1")
+                            # click = clickOpts(id = "plot_click"),
+                            # column(width = 6,
+                            #        verbatimTextOutput("click_info")
+                            #)
                    ),
                    tabPanel("Trend test",
                             h3(textOutput(outputId = "cnt.tr")),
@@ -324,17 +325,19 @@ server <- function(session, input, output) {
   })
   
   # plot outlier
-  output$plot.out<-renderPlot({
+  output$plot.out<-renderPlotly({
     if(input$run){
       d<-trend()
       d2<-d$df2
       trend<-td()
       d.out<-trend$d.out
       d2<-d2 %>% left_join(., d.out[,c(1:2,ncol(d.out),ncol(d.out)-1)], by=c("subject","time"))
+      d2$pct<-round(d2$pct*100, digits = 2)
+      d2<-rename(d2, Percentage_vars_with_outliers=pct)
       
       d2$time<-as.factor(d2$time)
-      ggplot(d2, aes(x=time, color=time))+
-        geom_point(aes(y=y,size=pct))+
+      p<-ggplot(d2, aes(x=time, color=time))+
+        geom_point(aes(y=y,size=Percentage_vars_with_outliers))+
         scale_colour_viridis(discrete = T)+
         geom_hline(data=d$d_mad, aes(yintercept = mad_up), color="red")+
         geom_hline(data=d$d_mad, aes(yintercept = mad_low), color="red")+
@@ -345,31 +348,33 @@ server <- function(session, input, output) {
               title = element_text(size=14),
               text = element_text(size=12),
               legend.position = "none")
-    }
+      fig<-ggplotly(p, tooltip = c("size"))
+      fig
+      }
   })
-  output$click_info <- renderPrint({
-    inp<-input$plot_click
-    subj<-parse_number(as.character(inp$panelvar1))
-    tm<-round(inp$x)
-    y<-inp$y
-    d<-trend()
-    d2<-d$df2
-    trend<-td()
-    d.out<-trend$d.out
-    d2<-d2 %>% left_join(., d.out[,c(1:2,ncol(d.out),ncol(d.out)-1)], by=c("subject","time"))
-    #find logical increment
-    m<-NULL
-    for (i in 1:nrow(d2)) {
-      m[i]<-abs(d2$y[i]-d2$y[i+1])
-    }
-    inc<-min(m[m!=0], na.rm = T)
-    #d2<-d2 %>% filter(., res==1) $only refer to points outside threshold
-    out.oth<-d2[d2$subject==subj & d2$time==tm & d2$y>=y-inc & d2$y<=y+inc,]$count.id
-    out.pct<-d2[d2$subject==subj & d2$time==tm & d2$y>=y-inc & d2$y<=y+inc,]$pct
-    out.pct<-round(out.pct*100, digits = 2)
-    paste0("Subject ",subj, ": There are ",out.oth," other parameters (",out.pct,"%) with outliers")
-    #str(input$plot_click)
-  })
+  # output$click_info <- renderPrint({
+  #   inp<-input$plot_click
+  #   subj<-parse_number(as.character(inp$panelvar1))
+  #   tm<-round(inp$x)
+  #   y<-inp$y
+  #   d<-trend()
+  #   d2<-d$df2
+  #   trend<-td()
+  #   d.out<-trend$d.out
+  #   d2<-d2 %>% left_join(., d.out[,c(1:2,ncol(d.out),ncol(d.out)-1)], by=c("subject","time"))
+  #   #find logical increment
+  #   m<-NULL
+  #   for (i in 1:nrow(d2)) {
+  #     m[i]<-abs(d2$y[i]-d2$y[i+1])
+  #   }
+  #   inc<-min(m[m!=0], na.rm = T)
+  #   #d2<-d2 %>% filter(., res==1) $only refer to points outside threshold
+  #   out.oth<-d2[d2$subject==subj & d2$time==tm & d2$y>=y-inc & d2$y<=y+inc,]$count.id
+  #   out.pct<-d2[d2$subject==subj & d2$time==tm & d2$y>=y-inc & d2$y<=y+inc,]$pct
+  #   out.pct<-round(out.pct*100, digits = 2)
+  #   paste0("Subject ",subj, ": There are ",out.oth," other parameters (",out.pct,"%) with outliers")
+  #   #str(input$plot_click)
+  # })
   
   # text output trends
   output$cnt.tr <- renderText({
@@ -395,7 +400,7 @@ server <- function(session, input, output) {
       d <- trend()      
       d$df3$time<-as.factor(d$df3$time)
       ggplot(d$df3, aes(x=time, color=time))+
-        geom_point(aes(y=y), size=2)+
+        geom_point(aes(y=y), size=4)+
         scale_colour_viridis(discrete = T)+
         geom_hline(data=d$d_mad3, aes(yintercept = mad_up), color="red")+
         geom_hline(data=d$d_mad3, aes(yintercept = mad_low), color="red")+
