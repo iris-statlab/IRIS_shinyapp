@@ -18,7 +18,7 @@ Imports:
     shinycssloaders, 
     Kendall, 
     viridis, 
-    ggpubr, 
+    patchwork, 
     reshape2, 
     quantreg, 
     invgamma, 
