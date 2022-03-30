@@ -121,7 +121,7 @@ ui <- fluidPage(
     mainPanel(
       tabsetPanel(
         tabPanel("Manual",
-                 h4("The workflow of Individual Reference Intervals (IRIs) estimation"),
+                 h4("This workflow of Individual Reference Intervals (IRIs) estimation"),
                  HTML('<br/>'),
                  HTML('<p> This tool can be used to perform an IRI estimation for a particular biomarker/clinical test. To ensure the quality of the data, a trend and time analysis as a part of the data quality checks needs to be performed before computing the IRI. It includes: (i) outliers detection, (ii) testing for the presence of a monotonic trend, and (iii) individual variance checking.</p>'),
                  HTML('<p> In order to use this tool, load your data set using <em>Data Upload</em> tab. The data must be in a <em>wide format</em> and the first two columns should indicate the subject and time indices. As an example:</p>'),
