@@ -410,7 +410,12 @@ server <- function(session, input, output) {
         theme(strip.text = element_text(size=15),
               title = element_text(size=14),
               text = element_text(size=12),
-              legend.text = element_text(size=14))
+              legend.text = element_text(size=14),
+              axis.text.x = element_text(size = 10),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=15),
+              axis.title.y = element_text(size=15),
+              axis.ticks = element_blank())
     }
   })
 
@@ -455,7 +460,13 @@ server <- function(session, input, output) {
         geom_point(aes(x=as.factor(subject), y=y, color=time), size=2)+
         scale_colour_viridis(discrete = T)+
         labs(y="Measurement", x="Subject")+
-        theme_bw()
+        theme_bw()+
+        theme(
+          axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust=1),
+          axis.text.y = element_text(size = 12),
+          axis.title.x = element_text(size=15),
+          axis.title.y = element_text(size=15),
+          axis.ticks = element_blank())
       
       d <- varcheck()
       g2<-ggplot(d$varmat.long)+
@@ -464,7 +475,13 @@ server <- function(session, input, output) {
         geom_hline(yintercept = d$mad.up, color="red")+
         geom_hline(yintercept = d$mad.low, color="red")+
         labs(y="Bootstrapped Variances", x="Subject")+
-        theme_bw()
+        theme_bw()+
+        theme(
+          axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust=1),
+          axis.text.y = element_text(size = 12),
+          axis.title.x = element_text(size=15),
+          axis.title.y = element_text(size=15),
+          axis.ticks = element_blank())
       g1 + g2
     }
   })
@@ -580,7 +597,7 @@ server <- function(session, input, output) {
            subtitle = paste0("Empirical coverage=",round(res$cov.tot, digits=4))) +
       theme_classic()+
       theme(legend.position = "right",
-            axis.text.x = element_text(size = 10),
+            axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust=1),
             axis.text.y = element_text(size = 12),
             axis.title.x = element_text(size=15),
             axis.title.y = element_text(size=15),

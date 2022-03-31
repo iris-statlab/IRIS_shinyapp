@@ -1,5 +1,6 @@
 volcano<-function(db,pct){
   subject<-unique(db$subject)
+  db$time<-as.numeric(db$time)
   N<-length(subject)
   res<-data.frame(subject=0, variable=0, MK_Pval=0, MK_tau=0, spearman_Pval=0, spearman_rho=0, nr_obs=0)
   d.mad_subj<-list()
@@ -100,8 +101,9 @@ volcano<-function(db,pct){
 
 
 trendsub<-function(db,lim){
-  subject<-unique(db$subject)
   colnames(db)<-c("subject","time","y")
+  subject<-unique(db$subject)
+  db$time<-as.numeric(db$time)
   res<-data.frame(subject=0, MK_Pval=0, MK_tau=0, spearman_Pval=0, spearman_rho=0, nr_obs=0)
   cnt<-0; s.i<-0;j<-1
   
@@ -196,8 +198,8 @@ trendsub<-function(db,lim){
 }
 
 varboot<-function(db,lim){
-  subject<-unique(db$subject)
   colnames(db)<-c("subject","time","y")
+  subject<-unique(db$subject)
   N<-length(subject)
   B=1000; i<-1
   varmat<-matrix(nrow=N, ncol=B+1)
@@ -220,6 +222,7 @@ varboot<-function(db,lim){
   mad.up<-median(varmat$mean.var)+lim*mad(varmat$mean.var)
   mad.low<-median(varmat$mean.var)-lim*mad(varmat$mean.var)
   out.mad<-which(varmat[,"mean.var"]>mad.up | varmat[,"mean.var"]<mad.low)
+  out.mad<-varmat[out.mad,]$subject
   exc_sub<-varmat[varmat$subject %in% out.mad,(B+3):(B+2)]
   colnames(exc_sub)<-c("subject","boostrapped var.")
   rownames(exc_sub)<-NULL
