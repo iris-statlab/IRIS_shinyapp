@@ -203,7 +203,7 @@ server <- function(session, input, output) {
   # read uploaded data
   data1 <- reactive({
     if(input$sample_data==TRUE){
-      df<-read.csv("./www/data/iam_clinical_clean.csv", sep=";")
+      df<-read.csv("./www/data/iam_clinical_sample.csv", sep=";")
       df
     }else{
       validate(need(input$file1,""))
@@ -213,6 +213,7 @@ server <- function(session, input, output) {
       df <- read.csv(inFile$datapath,na.strings = c("", "NA", "#N/A"),
                      header = input$header,sep = input$sep,quote = input$quote)
       df    
+      
     }
 
   })
