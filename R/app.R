@@ -56,6 +56,7 @@ ui <- fluidPage(
 #                  ),
 
                  conditionalPanel(condition="input.tabs1=='Data Upload'",
+                                  id="data_input",
                                   fileInput("file1", "Choose CSV file", multiple = FALSE,
                                             accept = c("text/csv","text/comma-separated-values,text/plain",".csv"),
                                             width = NULL, buttonLabel = "Browse...",
@@ -80,7 +81,8 @@ ui <- fluidPage(
                                   # Horizontal line ----
                                   tags$hr(),
                                   # Input: Checkbox if the sample data will be used ----
-                                  checkboxInput("sample_data", "Use sample data", FALSE)
+                                  checkboxInput("sample_data", "Use sample data", FALSE),
+                                  actionButton("reset_data", "Reset Data")
                                   
                  ),
                  conditionalPanel(condition="input.tabs1=='Trend & Time Analysis'",
@@ -200,13 +202,23 @@ ui <- fluidPage(
 server <- function(session, input, output) {
   # read uploaded data
   data1 <- reactive({
-    validate(need(input$file1,""))
-    inFile <- input$file1
-    if (is.null(inFile))
-      return(NULL)
-    df <- read.csv(inFile$datapath,na.strings = c("", "NA", "#N/A"),
-                   header = input$header,sep = input$sep,quote = input$quote)
-    df    
+    if(input$sample_data==TRUE){
+      df<-read.csv("./www/data/iam_clinical_clean.csv", sep=";")
+      df
+    }else{
+      validate(need(input$file1,""))
+      inFile <- input$file1
+      if (is.null(inFile))
+        return(NULL)
+      df <- read.csv(inFile$datapath,na.strings = c("", "NA", "#N/A"),
+                     header = input$header,sep = input$sep,quote = input$quote)
+      df    
+    }
+
+  })
+  
+  observeEvent(input$reset_data, {
+    shinyjs::reset("data_input")
   })
   
   # display data
