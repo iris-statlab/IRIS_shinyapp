@@ -183,7 +183,7 @@ ui <- fluidPage(
                             h3(textOutput(outputId = "sub.out")),
                             DT::dataTableOutput("excsub_all"),
                             h4(textOutput(outputId = "choose.sub")),
-                            plotOutput("plot") %>% withSpinner(color="#0dc5c1"),
+                            plotlyOutput("plot") %>% withSpinner(color="#0dc5c1"),
                             # actionButton("submit", "Submit report"),
                             actionButton("download", "Download report")
                             
@@ -305,14 +305,24 @@ server <- function(session, input, output) {
   output$dataplot <- renderPlot({
     if(input$run){
       db<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
-      colnames(db)<-c("subject","time","y")
-      db$time<-as.factor(db$time)
+      colnames(db)<-c("subject","Time","y")
+      db$Time<-as.factor(db$Time)
       
-      ggplot(db, aes(x=as.factor(subject), y=y, color=time))+
-        geom_point(size=2)+
+      ggplot(db, aes(x=as.factor(subject), y=y, color=Time))+
+        geom_point(size=3)+
         scale_colour_viridis(discrete = T)+
         labs(y="Measurement", x="Subject")+
-        theme_bw()
+        theme_bw()+
+        theme(
+          legend.title = element_text(size=15),
+          legend.text = element_text(size = 14),
+          axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5, hjust=1),
+          axis.text.y = element_text(size = 12),
+          axis.title.x = element_text(size=15),
+          axis.title.y = element_text(size=15),
+          axis.ticks = element_blank())
+      
+      
     }
   })
   
@@ -554,16 +564,16 @@ server <- function(session, input, output) {
     df2<-df2 %>% left_join(., inc, by="subject")
     df2$outlier<-ifelse(df2$y<df2$mad_low | df2$y>df2$mad_up,1,0)
     df2$outlier<-ifelse(is.na(df2$outlier)==T,0,df2$outlier)
-    df2$outlier<-
+#    df2$outlier<-
       
     db<-df2
     subjects<-unique(db$subject)
     cnt<-1; db2<-0; db3<-0
     for(s in subjects) {
       db.y<-db[(db$subject==s),]
-      db.y$outlier<-ifelse(db.y$time==max(db.y$time),2,db.y$outlier)
+      #db.y$outlier<-ifelse(db.y$time==max(db.y$time),2,db.y$outlier) # uncoment this if we want to exclude the last observation
       dba<-db.y
-      db.y<-db.y[(db.y$time!=max(db.y$time)),]
+      db.y<-db.y[(db.y$time!=max(db.y$time)),] # exclude the last observation in the IRI estimation
       
       db2<-rbind(db2,dba)
       db3<-rbind(db3,db.y)
@@ -574,7 +584,8 @@ server <- function(session, input, output) {
                    "85%" = 0.15,
                    "90%" = 0.1,
                    "95%" = 0.05)
-    res<-jqm(db=df3,
+    #db=df3, if we want to exclude the last obs
+    res<-jqm(db=df2,
              alpha=alpha,
              lambda.u.seq = seq(0.02,0.1,0.02),
              lambda.z.seq = seq(0.5,5,0.5))
@@ -591,7 +602,7 @@ server <- function(session, input, output) {
   })
 
   # plot IRI - JQM
-  output$plot<-renderPlot({
+  output$plot<-renderPlotly({
     .tmp <- showplot()
     df<- .tmp$df
     df2<- .tmp$df2
