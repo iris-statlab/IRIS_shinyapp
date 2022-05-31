@@ -1,0 +1,262 @@
+---
+title: "Individual Reference Interval Report for `r input$series2`"
+always_allow_html: yes
+output: pdf_document
+---
+
+This report was created using the **IRI** application workflow for estimating Individual Reference Intervals (IRIs) in a longitudinal data. Additional documentation for the **IRI** can be found at https://github.com/murihpusparum/PenalizedJQM
+
+
+## Introduction 
+
+Reference intervals (IRIs) are essential for the interpretation of clinical laboratory tests, assisting the professional regarding diagnosis and decision making in patient care. We developed the Individual Reference Intervals (IRIs) estimation procedure, which makes use of a longitudinal data and incorporates information from both the within- and between-subject variability. IRIs are subject-specific, and therefore are able to provide individual interpretations which would benefit the precision and personalised health domain.
+
+
+In the IRI application workflow, two main steps are performed before calculating the IRI estimates: (i) checking if a monotonic trend is present in each subject, and (ii) checking the homogeneity of variance between subjects. These two steps are necessary to obtain reliable IRI estimates i.e. the underlying data should come from a healthy population with stable measurements over time (a monotonic trend can indicate a health deterioration), and the variances should be similar across subjects. The assessment of overall trends of all variables in the dataset is done a priori and is presented in two volcano plots. In addition, for each variable, the outliers are also being analysed. 
+
+
+*******
+## 1. Overall trend analyses
+
+The **Mann-Kendall non-parametric test** of monotonic trend and the Spearman correlation test were performed to each subject in all variables present in the dataset. For the Mann-Kendall test, the hypotheses are following:\
+H0: No monotonic trend\
+H1: A monotonic trend is present\
+*a monotonic trend refers to the consistent increasing or decreasing pattern of observations through time\
+
+For the **Spearman correlation test**, observations of each subject were associated with time, which indicating of whether time is correlated with the individual measurements.\
+
+The Mann-Kendall of monotonic trend test and the Spearman correlation test were performed at each subject in each variable, and the results are presented in volcano plots below.
+```{r,echo=FALSE,fig.width=9, fig.height=4,fig.align='center'}
+trend<-td()
+res<-trend$res
+res.long1<-gather(res[,c(1:2,8,11)], type1, log.p.val, log_p_mk,log_p_cor, factor_key = T)
+res.long2<-gather(res[,c(1:2,4,6)], type2, coeff, MK_tau, spearman_rho, factor_key = T)
+res.long<-cbind(res.long1, res.long2[,-c(1:2)])
+res.long$type<-ifelse(res.long$type1=="log_p_mk" & res.long$type2=="MK_tau", "Mann-Kendall test", "Spearman correlation")
+
+p<-ggplot(res.long, aes(x=coeff, y=log.p.val, group=as.factor(subject), color=as.factor(subject)))+
+  geom_point()+
+  geom_hline(linetype="dashed", yintercept = -log10(0.05))+
+  geom_vline(xintercept = 0.7, linetype="dotted")+
+  geom_vline(xintercept = -0.7, linetype="dotted")+
+  scale_color_viridis(discrete = T, name="subject")+
+  labs(y="-log(P.value)", x="Coefficient")+
+  theme_bw()+
+  facet_wrap(~type)+
+  theme(strip.background =element_blank(),
+        strip.text = element_text(size=12),
+        title = element_text(size=12),
+        text = element_text(size=10)) 
+fig<-ggplotly(p)
+fig
+```
+
+
+These variable(s) have subjects (more than the threshold) with trends and correlations. It is recommended to not compute the IRI for them.
+```{r,echo=FALSE}
+DT::datatable({
+    trend <- td()
+    evar<-trend$exc_var
+    evar[,-1]<-round(evar[,-1], digits = 4)
+    evar
+}, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(dom = 'Bfrtip',buttons = list('copy',  list(extend = 'collection',           buttons = c('csv', 'excel'),text = 'Download')), keys = TRUE))
+if(nrow(evar)==0){print(paste0("No variables with more than ", input$pct, " subjects were found with trends and high correlations."))}
+
+```
+
+*******
+
+## 2. Trend and Time Analysis
+### Outlier detection
+
+These subjects were found with outlying observations:
+```{r,echo=FALSE,fig.width=10, fig.height=4,fig.align='center'}
+      d<-trend()
+      d2<-d$df2
+      trend<-td()
+      d.out<-trend$d.out
+      d2<-d2 %>% left_join(., d.out[,c(1:2,ncol(d.out),ncol(d.out)-1)], by=c("subject","time"))
+      d2$pct<-round(d2$pct*100, digits = 2)
+      d2<-rename(d2, Percentage_vars_with_outliers=pct)
+      
+      d2$time<-as.factor(d2$time)
+      p<-ggplot(d2, aes(x=time, color=time))+
+        geom_point(aes(y=y,size=Percentage_vars_with_outliers))+
+        scale_colour_viridis(discrete = T)+
+        geom_hline(data=d$d_mad, aes(yintercept = mad_up), color="red")+
+        geom_hline(data=d$d_mad, aes(yintercept = mad_low), color="red")+
+        labs(y="Measurement", x="Time")+
+        theme_bw()+
+        facet_wrap(~subject, scales = "free_x")+
+        theme(strip.text = element_text(size=12),
+              title = element_text(size=14),
+              text = element_text(size=10),
+              legend.position = "none")
+      fig<-ggplotly(p, tooltip = c("size"))
+      fig
+
+```
+In each plot, the red lines refer to the lower and the upper bounds of the MAD thresholds. The size of each point indicates the number of variables, relative to the total, that also has outlying observations at the same subject and at the same time point.The higher this proportion, the higher the chance that this observation is not part of the healthy measurements and you may want to exclude this from the IRI estimation.
+
+*******
+
+### Trend test
+According to the Mann-Kendall test and the Spearman correlation test, these subjects were found to have trends and/or high correlations:
+```{r,echo=FALSE}
+DT::datatable({
+      d <- trend()
+      evar<-d$exc_dat[,1:5]
+      evar[,-1]<-round(evar[,-1], digits = 4)
+      evar
+}, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(dom = 'Bfrtip',buttons = list('copy',  list(extend = 'collection',           buttons = c('csv', 'excel'),text = 'Download')), keys = TRUE))
+```
+
+```{r,echo=FALSE,fig.width=11, fig.height=4,fig.align='center'}
+      d <- trend()      
+      d$df3$time<-as.factor(d$df3$time)
+      if(nrow(d$df3)!=0){
+        p<-ggplot(d$df3, aes(x=time, color=time))+
+        geom_point(aes(y=y), size=4)+
+        scale_colour_viridis(discrete = T)+
+        geom_hline(data=d$d_mad3, aes(yintercept = mad_up), color="red")+
+        geom_hline(data=d$d_mad3, aes(yintercept = mad_low), color="red")+
+        labs(y="Measurement", x="Time")+
+        theme_bw()+
+        facet_wrap(~subject, scales = "free")+
+        theme(strip.text = element_text(size=15),
+              title = element_text(size=14),
+              text = element_text(size=12),
+              legend.text = element_text(size=14),
+              axis.text.x = element_text(size = 10),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=15),
+              axis.title.y = element_text(size=15),
+              axis.ticks = element_blank())
+      fig<-ggplotly(p)
+      fig
+      }else{print("No subjects were found with trends and/or high correlations.")}
+
+```
+
+*******
+
+### Variance checking
+
+According to the estimated variance in each subject and its corresponding MAD threshold, these subjects were found to have high variances:
+
+```{r,echo=FALSE}
+DT::datatable({
+      d <- varcheck()
+      evar<-d$exc_sub
+      evar[,-1]<-round(evar[,-1], digits = 4)
+      evar
+      }, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(dom = 'Bfrtip',buttons = list('copy', list(extend = 'collection',           buttons = c('csv', 'excel'),text = 'Download')), keys = TRUE))
+if(nrow(evar)==0){print("No subjects were found with high variances.")}
+```
+
+```{r,echo=FALSE,fig.width=10, fig.height=4,fig.align='center'}
+      d <- varcheck()
+      if(nrow(d$varmat.long)!=0){
+      db<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
+      colnames(db)<-c("subject","time","y")
+      db$time<-as.factor(db$time)
+      g1<-ggplot(db)+
+        geom_point(aes(x=as.factor(subject), y=y, color=time), size=2)+
+        scale_colour_viridis(discrete = T)+
+        labs(y="Measurement", x="Subject")+
+        theme_bw()+
+        theme(
+          axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust=1),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size=12),
+          axis.title.y = element_text(size=12),
+          axis.ticks = element_blank())
+      fig1<-ggplotly(g1, tooltip = c("y","color"))
+      
+      
+      g2<-ggplot(d$varmat.long)+
+        geom_point(aes(x=as.factor(subject), y=var.boot), shape=1, size=1, color="darkgrey")+
+        geom_point(aes(x=as.factor(subject), y=mean.var), color="blue", size=2)+
+        geom_hline(yintercept = d$mad.up, color="red")+
+        geom_hline(yintercept = d$mad.low, color="red")+
+        labs(y="Bootstrapped Variances", x="Subject")+
+        theme_bw()+
+        theme(
+          axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust=1),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size=12),
+          axis.title.y = element_text(size=12),
+          axis.ticks = element_blank())
+      fig2<-ggplotly(g2, tooltip = c("y"))
+      subplot(fig2, fig1, nrows=1, shareX=TRUE, titleX=TRUE, shareY=FALSE, titleY=TRUE)
+
+      }else{print("No subjects were found with trends and/or high correlations.")}
+
+```
+
+The left figure shows the estimated variances for each subject (in blue dots) and the bootstrapped variance distribution (gray dots). The corresponding MAD thresholds are also depicted (red lines). High variances are observed when the estimated variances fall outside these thresholds.
+
+*******
+
+## 3. IRI Estimates
+#### IRI plot of all subjects
+The final estimates of IRIs are presented below. The dotted points refer to the observations used in the estimation. Each interval is specific for each subject, and should be used to interpret the future measurement(s) outside the reference data.\
+Outliers were included in the calculation and were flagged as red in this plot.
+```{r,echo=FALSE,fig.width=11, fig.height=4,fig.align='center'}
+.tmp <- showplot()
+df<- .tmp$df
+df2<- .tmp$df2
+res<- .tmp$res
+uz<- .tmp$uz
+
+g1<-ggplot(uz, aes(x=as.factor(id))) +
+  geom_errorbar(aes(ymin = low, ymax = up), color="darkblue", size=1) +
+  geom_point(data = df2, aes(x = as.factor(subject), y = y, color=as.factor(outlier)),
+             position = position_dodge(width = 0.9),size=2) +
+  geom_vline(xintercept=seq(1.5, length(unique(df2$subject))-0.5, 1),
+             lwd=0.5, colour="grey") +
+  scale_color_manual(name="Outlying observation", labels=c("No","Yes","New measurement"), values = c("darkgrey","red", "darkgreen"))+
+  labs(x="Participants",y="Measurement",
+       title=paste0("IRI of ",names(df)[3]),
+       subtitle = paste0("Empirical coverage=",round(res$cov.tot, digits=4))) +
+  theme_classic()+
+  theme(legend.position = "right",
+        axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust=1),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size=12),
+        axis.title.y = element_text(size=12),
+        axis.ticks = element_blank(),
+        panel.border = element_rect(NA))
+fig<-ggplotly(g1, tooltip = c("y"))
+fig
+```
+
+Due to the presence of monotonic trends and high variances, these subjects were excluded from the IRI estimation:
+```{r,echo=FALSE}
+DT::datatable({
+    d1 <- trend()
+    d2 <- varcheck()
+    #Subject<-unique(c(d1$exc_sub, d2$out.mad))
+    Subject<-c(unique(d1$exc_sub), unique(d2$out.mad))
+    Remark<-c(rep("Trend/correlation is present", length(unique(d1$exc_sub))),
+              rep("High variance", length(unique(d2$out.mad))))
+    data.frame(Subject,Remark)
+}, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(dom = 'Bfrtip',buttons = list('copy', list(extend = 'collection',           buttons = c('csv', 'excel'),text = 'Download')), keys = TRUE))
+if(nrow(evar)==0){print("No subjects are excluded from the estimation.")}
+
+```
+
+The upper and the lower boundaries of the estimated IRIs with the corresponding data are presented below.
+
+```{r,echo=FALSE}
+DT::datatable({
+.tmp <- showplot()
+    uz<- .tmp$uz
+    uz[,1:4]<-round(uz[,1:4],digits = 4)
+    df<- .tmp$df
+    df2<- .tmp$df2
+    colnames(df2)<-c("subject","time",names(df)[3],"mad_up","mad_low","outlier")
+    df2<-df2[,c(1:3,6)] %>% left_join(uz[,c(3:5)], by=c("subject"="id"))
+    df2
+}, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(dom = 'Bfrtip',buttons = list('copy', list(extend = 'collection',           buttons = c('csv', 'excel'),text = 'Download')), keys = TRUE))
+```
