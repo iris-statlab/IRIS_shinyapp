@@ -23,37 +23,6 @@ ui <- fluidPage(
   sidebarLayout(
     # Sidebar panel for inputs ----
     sidebarPanel(width=3,
-                 # conditionalPanel("input.tabs1=='Manual'",
-                 #                  actionButton(inputId = "start",  label = "START", icon = icon("play", lib = "glyphicon"))
-                 #                  
-                 # 
-                 #                  fileInput("file1", "Choose CSV file", multiple = FALSE,
-                 #                            accept = c("text/csv","text/comma-separated-values,text/plain",".csv"),
-                 #                            width = NULL, buttonLabel = "Browse...",
-                 #                            placeholder = "No file selected"),
-                 #                  # Horizontal line ----
-                 #                  tags$hr(),
-                 #                  
-                 #                  # Input: Checkbox if file has header ----
-                 #                  checkboxInput("header", "Header", TRUE),
-                 #                  # Input: Select separator ----
-                 #                  radioButtons("sep", "Separator",
-                 #                               choices = c(Comma = ",",
-                 #                                           Semicolon = ";",
-                 #                                           Tab = "\t"),
-                 #                               selected = ","),
-                 #                  # Input: Select quotes ----
-                 #                  radioButtons("quote", "Quote",
-                 #                               choices = c(None = "",
-                 #                                           "Double Quote" = '"',
-                 #                                           "Single Quote" = "'"),
-                 #                               selected = '"'),
-                 #                  # Horizontal line ----
-                 #                  tags$hr(),
-                 #                  # Input: Checkbox if the sample data will be used ----
-                 #                  checkboxInput("sample_data", "Use sample data", TRUE)
-# 
-#                  ),
 
                  conditionalPanel(condition="input.tabs1=='Data Upload'",
                                   id="data_input",
@@ -145,7 +114,7 @@ ui <- fluidPage(
           tabPanel('Data', DT::dataTableOutput('RawData')),
           tabPanel('Volcano Plot', 
                    selectInput("pct", "Percentage threshold of total subjects with trends and high correlations:", choices=c("10%","15%","20%")),
-                   plotOutput("volcano")%>% withSpinner(color="#0dc5c1"),
+                   plotlyOutput("volcano")%>% withSpinner(color="#0dc5c1"),
                    h3(textOutput(outputId = "var.result")),
                    DT::dataTableOutput("excvar"))
           )
@@ -156,11 +125,11 @@ ui <- fluidPage(
                    title = '',
                    tabPanel('Data', 
                             DT::dataTableOutput("contents"),
-                            plotOutput("dataplot")
+                            plotlyOutput("dataplot", height = 600)
                             ),
                    tabPanel("Outlier",
                             h3(textOutput(outputId = "cnt.out")),
-                            plotlyOutput("plot.out", height=800)%>% withSpinner(color="#0dc5c1")
+                            plotlyOutput("plot.out", height = 800)%>% withSpinner(color="#0dc5c1")
                             # click = clickOpts(id = "plot_click"),
                             # column(width = 6,
                             #        verbatimTextOutput("click_info")
@@ -169,12 +138,12 @@ ui <- fluidPage(
                    tabPanel("Trend test",
                             h3(textOutput(outputId = "cnt.tr")),
                                DT::dataTableOutput("excsub"),
-                               plotOutput("plot.trend")%>% withSpinner(color="#0dc5c1")
+                            plotlyOutput("plot.trend")%>% withSpinner(color="#0dc5c1")
                    ),
                    tabPanel("Variance checking",
                             h3(textOutput(outputId = "cnt.var")),
                             DT::dataTableOutput("excsubvar"),
-                            plotOutput("plot.var")%>% withSpinner(color="#0dc5c1")
+                            plotlyOutput("plot.var")%>% withSpinner(color="#0dc5c1")
                  ))),
         tabPanel("RI Estimation",
                  navbarPage(
@@ -185,9 +154,9 @@ ui <- fluidPage(
                             h4(textOutput(outputId = "choose.sub")),
                             plotlyOutput("plot") %>% withSpinner(color="#0dc5c1"),
                             # actionButton("submit", "Submit report"),
-                            actionButton("download", "Download report")
-                            
-                   )
+                            downloadButton("downloadReport", "Download report"),
+                            radioButtons('format', 'Document format', c('HTML')),
+                                         inline = TRUE)
                  )
                  ),
         
@@ -240,7 +209,7 @@ server <- function(session, input, output) {
   })
   
   # volcano plot
-  output$volcano<-renderPlot({
+  output$volcano<-renderPlotly({
     trend<-td()
     res<-trend$res
     res.long1<-gather(res[,c(1:2,8,11)], type1, log.p.val, log_p_mk,log_p_cor, factor_key = T)
@@ -248,7 +217,7 @@ server <- function(session, input, output) {
     res.long<-cbind(res.long1, res.long2[,-c(1:2)])
     res.long$type<-ifelse(res.long$type1=="log_p_mk" & res.long$type2=="MK_tau", "Mann-Kendall test", "Spearman correlation")
     
-    ggplot(res.long, aes(x=coeff, y=log.p.val, group=as.factor(subject), color=as.factor(subject)))+
+    p<-ggplot(res.long, aes(x=coeff, y=log.p.val, group=as.factor(subject), color=as.factor(subject)))+
       geom_point()+
       geom_hline(linetype="dashed", yintercept = -log10(0.05))+
       geom_vline(xintercept = 0.7, linetype="dotted")+
@@ -261,6 +230,7 @@ server <- function(session, input, output) {
             strip.text = element_text(size=16),
             title = element_text(size=14),
             text = element_text(size=12)) 
+    fig<-ggplotly(p)
     
   })
   
@@ -302,14 +272,14 @@ server <- function(session, input, output) {
       df.show
   })
   
-  output$dataplot <- renderPlot({
+  output$dataplot <- renderPlotly({
     if(input$run){
       db<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
       colnames(db)<-c("subject","Time","y")
       db$Time<-as.factor(db$Time)
       
-      ggplot(db, aes(x=as.factor(subject), y=y, color=Time))+
-        geom_point(size=3)+
+      p<-ggplot(db)+
+        geom_point(aes(x=as.factor(subject), y=y, color=Time),size=2.5)+
         scale_colour_viridis(discrete = T)+
         labs(y="Measurement", x="Subject")+
         theme_bw()+
@@ -321,6 +291,8 @@ server <- function(session, input, output) {
           axis.title.x = element_text(size=15),
           axis.title.y = element_text(size=15),
           axis.ticks = element_blank())
+      fig<-ggplotly(p, tooltip = c("y","color"))
+      
       
       
     }
@@ -375,30 +347,7 @@ server <- function(session, input, output) {
       fig
       }
   })
-  # output$click_info <- renderPrint({
-  #   inp<-input$plot_click
-  #   subj<-parse_number(as.character(inp$panelvar1))
-  #   tm<-round(inp$x)
-  #   y<-inp$y
-  #   d<-trend()
-  #   d2<-d$df2
-  #   trend<-td()
-  #   d.out<-trend$d.out
-  #   d2<-d2 %>% left_join(., d.out[,c(1:2,ncol(d.out),ncol(d.out)-1)], by=c("subject","time"))
-  #   #find logical increment
-  #   m<-NULL
-  #   for (i in 1:nrow(d2)) {
-  #     m[i]<-abs(d2$y[i]-d2$y[i+1])
-  #   }
-  #   inc<-min(m[m!=0], na.rm = T)
-  #   #d2<-d2 %>% filter(., res==1) $only refer to points outside threshold
-  #   out.oth<-d2[d2$subject==subj & d2$time==tm & d2$y>=y-inc & d2$y<=y+inc,]$count.id
-  #   out.pct<-d2[d2$subject==subj & d2$time==tm & d2$y>=y-inc & d2$y<=y+inc,]$pct
-  #   out.pct<-round(out.pct*100, digits = 2)
-  #   paste0("Subject ",subj, ": There are ",out.oth," other parameters (",out.pct,"%) with outliers")
-  #   #str(input$plot_click)
-  # })
-  
+
   # text output trends
   output$cnt.tr <- renderText({
     if(input$run){
@@ -418,11 +367,11 @@ server <- function(session, input, output) {
   })
   
   # plot trends
-  output$plot.trend<-renderPlot({
+  output$plot.trend<-renderPlotly({
     if(input$run){
       d <- trend()      
       d$df3$time<-as.factor(d$df3$time)
-      ggplot(d$df3, aes(x=time, color=time))+
+      p<-ggplot(d$df3, aes(x=time, color=time))+
         geom_point(aes(y=y), size=4)+
         scale_colour_viridis(discrete = T)+
         geom_hline(data=d$d_mad3, aes(yintercept = mad_up), color="red")+
@@ -439,6 +388,8 @@ server <- function(session, input, output) {
               axis.title.x = element_text(size=15),
               axis.title.y = element_text(size=15),
               axis.ticks = element_blank())
+      fig<-ggplotly(p)
+      fig
     }
   })
 
@@ -474,7 +425,7 @@ server <- function(session, input, output) {
   })
   
   # plot data vs variances
-  output$plot.var<-renderPlot({
+  output$plot.var<-renderPlotly({
     if(input$run){
       db<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
       colnames(db)<-c("subject","time","y")
@@ -490,6 +441,8 @@ server <- function(session, input, output) {
           axis.title.x = element_text(size=15),
           axis.title.y = element_text(size=15),
           axis.ticks = element_blank())
+      fig1<-ggplotly(g1, tooltip = c("y","color"))
+      
       
       d <- varcheck()
       g2<-ggplot(d$varmat.long)+
@@ -505,7 +458,9 @@ server <- function(session, input, output) {
           axis.title.x = element_text(size=15),
           axis.title.y = element_text(size=15),
           axis.ticks = element_blank())
-      g1 + g2
+      fig2<-ggplotly(g2, tooltip = c("y"))
+      subplot(fig2, fig1, nrows=1, shareX=TRUE, titleX=TRUE, shareY=FALSE, titleY=TRUE)
+#      g1 + g2
     }
   })
   
@@ -609,10 +564,10 @@ server <- function(session, input, output) {
     res<- .tmp$res
     uz<- .tmp$uz
     
-    ggplot(uz, aes(x=as.factor(id))) +
+    g1<-ggplot(uz, aes(x=as.factor(id))) +
       geom_errorbar(aes(ymin = low, ymax = up), color="darkblue", size=1) +
       geom_point(data = df2, aes(x = as.factor(subject), y = y, color=as.factor(outlier)),
-                 position = position_dodge(width = 0.9),size=2.5) +
+                 position = position_dodge(width = 0.9),size=2) +
       geom_vline(xintercept=seq(1.5, length(unique(df2$subject))-0.5, 1),
                  lwd=0.5, colour="grey") +
       scale_color_manual(name="Outlying observation", labels=c("No","Yes","New measurement"), values = c("darkgrey","red", "darkgreen"))+
@@ -627,9 +582,36 @@ server <- function(session, input, output) {
             axis.title.y = element_text(size=15),
             axis.ticks = element_blank(),
             panel.border = element_rect(NA))
+    fig<-ggplotly(g1, tooltip = c("y"))
 
   })
-
+  
+  
+  ###### Report ######
+  output$downloadReport <- downloadHandler(
+    filename = function() {
+      paste('IRI_report', sep = '.', switch(
+        input$format, PDF = 'pdf', HTML = 'html', Word = 'docx'
+      ))
+    },
+    
+    content = function(file) {
+      src <- normalizePath('Report.Rmd')
+      
+      # temporarily switch to the temp dir, in case you do not have write
+      # permission to the current working directory
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, 'Report.Rmd', overwrite = TRUE)
+      
+      library(rmarkdown)
+      out <- render('Report.Rmd', switch(
+        input$format,
+        PDF = pdf_document(), HTML = html_document(), Word = word_document()
+      ))
+      file.rename(out, file)
+    }
+  )
 }
 
 # Create Shiny app ----
