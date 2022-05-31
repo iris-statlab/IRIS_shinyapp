@@ -66,7 +66,14 @@ volcano<-function(db,pct){
   d.outw<-dcast(d.out, subject+time~variable, value.var = "res")
   d.outw$count.id<-rowSums(d.outw[,-c(1:2)])
   d.outw$pct<-d.outw$count.id/(ncol(d.outw)-3)
-  
+  res2<-res
+  # for(s in subject){
+  #   rs<-res[res$subject==s,]
+  #   p.mk<-p.adjust(rs$MK_Pval,method="BH",n=nrow(rs))
+  #   p.sp<-p.adjust(rs$spearman_Pval,method="BH",n=nrow(rs))
+  #   res[res$subject==s,]$MK_Pval<-p.mk
+  #   res[res$subject==s,]$spearman_Pval<-p.sp
+  # }
   res$log_p_mk<-(-log10(res$MK_Pval))
   res$signf<-ifelse(res$MK_Pval<=0.05,1,0)
   res$high_tau<-ifelse(abs(res$MK_tau)>0.6999, 1,0)
@@ -91,7 +98,7 @@ volcano<-function(db,pct){
   exc_dat<-exc_cor[exc_cor$variable %in% c(exc_var1,exc_var2),]
   exc_dat<-exc_dat %>% group_by(variable) %>% summarise(avg.Pval.corr=mean(spearman_Pval), avg.corr.coeff=mean(abs(spearman_rho)),
                                                  avg.Pval.MK=mean(MK_Pval), avg.MK.tau=mean(abs(MK_tau)))
-
+  colnames(exc_dat)<-c("Variable","p-val Spearman", "Spearman coeff.", "p-val Mann-K", "Mann-K tau")
   return(list(
     res=res,
     exc_var=exc_dat,
@@ -178,6 +185,8 @@ trendsub<-function(db,lim){
   
   exc_sub<-c(exc_sub1,exc_sub2)
   exc_dat<-res[res$subject %in% exc_sub,]
+  colnames(exc_dat)<-c("Subject","p-val Mann-K","Mann-K tau","p-val Spearman","Spearman coeff.",
+                       colnames(exc_dat)[6:10])
   df3<-db[db$subject %in% exc_sub,]
   d_mad3 <- df3 %>% 
     group_by(subject) %>% 
@@ -224,7 +233,7 @@ varboot<-function(db,lim){
   out.mad<-which(varmat[,"mean.var"]>mad.up | varmat[,"mean.var"]<mad.low)
   out.mad<-varmat[out.mad,]$subject
   exc_sub<-varmat[varmat$subject %in% out.mad,(B+3):(B+2)]
-  colnames(exc_sub)<-c("subject","boostrapped var.")
+  colnames(exc_sub)<-c("Subject","Boostrapped var.")
   rownames(exc_sub)<-NULL
   return(list(
     varmat.long=varmat.long,
