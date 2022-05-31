@@ -9,6 +9,8 @@ library(viridis)
 library(patchwork)
 library(reshape2)
 library(plotly)
+library(htmltools)
+library(knitr)
 
 source("JQM_Function.R")
 source("fun_volcano.R")
