@@ -1,0 +1,694 @@
+---
+title: "Biological Variation Report for `r input$analyte`"
+always_allow_html: yes
+output: pdf_document
+---
+
+
+```{r hello-random, echo=FALSE}
+pxtablek <- function(x, ...) { 
+	if(class(x)=='list'){
+  		print(xtable::xtable(x[[1]], digits=x$digits, caption=paste('</br>',x$caption)  ),type='html', ...) 
+  	}else{
+  		print(xtable::xtable(x),type='html', ...) 
+  	}
+}
+opts_chunk$set(echo=FALSE, results='asis',fig.path='tempFiguresForKnitrReport/', fig.width=9, fig.height=7)
+```
+
+
+This report was created using the **BV** tool for analyzing biological variation data. **BV** is developed by **Turcosa Analytics** and can be accessed online at http://opensoft.turcosa.com.tr/BioVar/ 
+
+Additional documentation for the **BV**, including instructions on how to download the application for offline use, can be found at https://github.com/selcukorkmaz/BioVar
+
+
+# Introduction 
+
+The steps of analyzing the BV data can be divided into seven steps: (i) detecting outliers, (ii) controlling normality assumption, (iii) checking steady-state condition, (iv) checking homogeneity assumptions, (v) performing subset analysis for genders, (vi) performing analysis of variance and (vii) identifying analytical performance specifications. Here, we presented an online tool for the statistical analysis of the BV data based on guideline by Bartlett et al. (2015), the pipeline by Braga and Panteghini (2016) and the updated checklist by Aarsand et al. (2018).
+
+Bartlett WA, Braga F, Carobene A, Coskun A, Prusa R, et al. A checklist for critical appraisal of studies of biological variation. Clin Chem Lab Med 2015; 53(6):879-85.
+
+Braga F, Panteghini M. Generation of data on within-subject biological variation in laboratory medicine: An update. Crit Rev Clin Lab Sci 2016; 53(5):313-25.
+
+Aarsand AK, Roraas T, Fernandez-Calle P, Ricos C, Diaz-Garzon J, et al. The Biological Variation Data Critical Appraisal Checklist: A Standard for Evaluating Studies on Biological Variation. Clin Chem 2018; 64(3):501-14.
+
+Here are the abbreviations we used in this report:
+
+**CV:** coefficient of variation
+**CVA:** analytical CV
+**CVI:** within CV
+**CVG:** between CV
+**II:** index of individuality
+**RCV:** reference change values
+
+
+*******
+# 1. Outlier Detection
+
+It is recommended that outlier detection should be performed using Cochran’s test and Reed’s criterion in three steps:
+
+Step 1: Use the Cochran’s test to check outliers among replicates.
+
+## 1.1. Table 1: Outliers in the sets of duplicate results using the Cochran test
+
+```{r}
+DT::datatable(outlierResults()[[1]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+```
+*******
+
+Step 2: Use the Cochran’s test to determine whether a subject distribution was greater or smaller than those of the group as a whole. 
+
+
+## 1.2. Table 2: Outliers in the variances of the results from each subject using the Cochran test
+
+```{r}
+DT::datatable(outlierResults()[[2]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+```
+*******
+
+Step 3: Use the Reed’s criterion to determine whether mean value of any subject is significantly greater or smaller compared to other subjects. 
+
+## 1.3 Table 3: Outliers in the variances of the results from each subject using the Cochran test
+
+```{r}
+DT::datatable(outlierResults()[[3]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+```
+*******
+
+# Normality Test
+
+The Shapiro-Wilk test is one of the most widely used and powerful tests for checking normality assumption.
+
+The normality control should be performed in two steps: 
+
+Step 1: The normality of each measurand
+
+## 2.1. Table 1: On set of results from each individual
+```{r}
+      DT::datatable(normalityResults()[[1]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+
+```
+
+Step 2: The normality of mean values of all subjects 
+
+## 2.2. Table 2: On mean values of subjects
+```{r}
+      DT::datatable(normalityResults()[[2]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+
+```
+
+# 3. Steady-State
+
+Subjects is considered in the steady-state, if the 95% confidence interval of the slope of the regression line contains 0.
+
+## 3.1. Table 1: Linear regression result
+```{r}
+      DT::datatable(steadyStateResult(), extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+
+```
+
+# 4. Homogeneity
+
+The homogeneity of within-subject and analytical variability should be checked using the Bartlett test. 
+
+## 4.1. Table 1: Homogeneity of analytical variability
+```{r}
+ res = homogeneityAnalytical(dataSetWithoutOutliers(), subject = "subject", time = "time", replicate="replicate", alpha = input$alphaLevel, decimal = input$decimal, correction = TRUE, test = input$homogeneityTest)
+      
+      DT::datatable(res, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+
+```
+
+
+## 4.2. Table 2: Homogeneity of within-subject variability
+```{r}
+
+      res = homogeneityWithin(dataSetWithoutOutliers(), subject = "subject", time = "time", replicate="replicate", alpha = input$alphaLevel, decimal = input$decimal, correction = TRUE , test = input$homogeneityTest)
+      
+      DT::datatable(res, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+```
+
+
+
+# 5. Subset Analysis
+
+The significant differences in the CVI and CVG between gender groups (i.e. female and male) must be controlled in order to determine whether the estimates should be reported separately for genders. If the 95% confidence intervals of CVI and CVG overlap between genders, then, it is concluded that there is no significant differences between gender groups. Therefore, all-subjects results should be reported for CVI and CVG. In the case of non-overlapping confidence intervals, the results of CVI and CVG should be reported separately for each gender.  
+
+## 5.1. Table 1: Gender comparison for between-subject variation
+
+```{r}
+      DT::datatable(subsetCVResults()[[1]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+
+```
+
+## 5.2. Table 2: Gender comparison for within-subject variation
+
+```{r}
+      DT::datatable(subsetCVResults()[[2]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+
+```
+
+## 5.3. Table 3: Student's t test for mean differences of gender groups
+```{r}
+      DT::datatable(subsetResults()[[2]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+
+
+```
+
+The differences between mean values of genders can be compared using a Student t test. If there is no significant difference between mean values of males and females, all-subjects CVI and all-subjects CVG are used to calculate the analytical performance specifications . In the case of the significant difference between mean values of genders, the lowest of the two CVG estimate is used to calculate the analytical performance specifications
+
+## 3.4. Table 4: Homogeneity test for average within-subject total variance
+```{r}
+      DT::datatable(subsetResults()[[3]], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+
+```
+
+
+# 6. Analysis of Variance
+## 6.1. All subjects
+
+### 6.1.1. Table 1: Reference Change Values (RCV) Results
+
+```{r}
+
+    
+    res = analysisOfVarinceResults()
+    
+    if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+      
+      result =  DT::datatable(res$resultsAllOriginalLme$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+
+ if(input$run && (input$showResult == "cv" || input$showResult == "mom"  || input$showResult == "lnmom")){
+      
+      result = DT::datatable(res$resultsAllCvAnova$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+    
+     if(input$run && input$showResult == "transformBack"){
+      
+      result = DT::datatable(res$resultsAllTransformBackLnLme$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+    
+  result
+```
+
+
+### 6.1.2. Table 2: Mean and associated confidence interval of the measurand, index of individuality (II) and the number of samples (n)
+
+```{r}
+ res = analysisOfVarinceResults()
+    
+    if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+      
+      result = DT::datatable(res$resultsAllOriginalLme$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+     if(input$run && input$showResult == "cv"){
+      
+      result = DT::datatable(res$resultsAllCvAnova$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+     if(input$run  && input$showResult == "transformBack"){
+      
+      result = DT::datatable(res$resultsAllTransformBackLnLme$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+result
+```
+
+### 6.1.3. Table 3: Analysis of Variance Table
+
+```{r}
+    
+    res = analysisOfVarinceResults()
+    
+   if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+      
+      result =  DT::datatable(res$resultsAllOriginalLme$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+     if(input$run && input$showResult == "cv"){
+      
+      result = DT::datatable(res$resultsAllCvAnova$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+    
+     if(input$run && input$showResult == "transformBack"){
+      
+      result = DT::datatable(res$resultsAllTransformBackLnLme$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+
+result
+    
+    
+```
+
+
+### 6.1.4. Table 4: Analytical performance specifications 
+
+```{r}
+ 
+    res = analysisOfVarinceResults()
+    
+   if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+      
+      result = DT::datatable(res$resultsAllOriginalLme$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+    
+   if(input$run && input$showResult == "cv"){
+      
+      result = DT::datatable(res$resultsAllCvAnova$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+   if(input$run && input$showResult == "transformBack"){
+      
+      result = DT::datatable(res$resultsAllTransformBackLnLme$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+result
+```
+
+## 6.2. Gender 1
+
+### 6.2.1. Table 1: Reference Change Values (RCV) Results
+```{r}
+
+    
+    res = analysisOfVarinceResults()
+    
+    if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+      
+      result = DT::datatable(res$resultsOriginalGenderLme1$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+    
+     if(input$run && (input$showResult == "cv" || input$showResult == "mom"  || input$showResult == "lnmom")){
+      
+      result = DT::datatable(res$resultsCvAnovaGender1$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+     if(input$run && input$showResult == "transformBack"){
+      
+      result = DT::datatable(res$resultsTransformBackGenderLnLme1$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+    
+  
+      result
+      
+    
+
+```
+
+
+
+### 6.2.2. Table 2: Mean and associated confidence interval of the measurand, index of individuality (II) and the number of samples (n)
+```{r}
+
+       res = analysisOfVarinceResults()
+      
+     if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+        
+        
+        result = DT::datatable(res$resultsOriginalGenderLme1$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      
+      if(input$run && input$showResult == "cv"){
+        
+        result = DT::datatable(res$resultsCvAnovaGender1$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      if(input$run && input$showResult == "transformBack"){
+        
+        result = DT::datatable(res$resultsTransformBackGenderLnLme1$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      
+      result
+      
+    
+
+```
+
+
+### 6.2.3. Table 3: Analysis of variance table
+```{r}
+  
+      
+      res = analysisOfVarinceResults()
+      
+     if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+        
+        result = DT::datatable(res$resultsOriginalGenderLme1$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      
+       if(input$run && input$showResult == "cv"){
+        
+        result = DT::datatable(res$resultsCvAnovaGender1$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+       if(input$run && input$showResult == "transformBack"){
+        
+        result = DT::datatable(res$resultsTransformBackGenderLnLme1$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+    
+      
+      result
+    
+
+```
+
+
+### 6.2.4. Table 4: Analytical performance specifications 
+```{r}
+
+      
+      res = analysisOfVarinceResults()
+      
+      
+     if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+        
+        result = DT::datatable(res$resultsOriginalGenderLme1$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+       if(input$run && input$showResult == "cv"){
+        
+        result = DT::datatable(res$resultsCvAnovaGender1$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+
+       if(input$run && input$showResult == "transformBack"){
+        
+        result = DT::datatable(res$resultsTransformBackGenderLnLme1$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      
+    
+      result
+      
+    
+
+```
+
+
+## 6.3. Gender 2
+
+### 6.3.1. Table 1: Reference Change Values (RCV) Results
+```{r}
+
+    
+    
+    res = analysisOfVarinceResults()
+    
+    if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+      
+      result = DT::datatable(res$resultsOriginalGenderLme2$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+    
+     if(input$run && (input$showResult == "cv" || input$showResult == "mom"  || input$showResult == "lnmom")){
+      
+      result = DT::datatable(res$resultsCvAnovaGender2$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+     if(input$run && input$showResult == "transformBack"){
+      
+      result = DT::datatable(res$resultsTransformBackGenderLnLme2$rcvResult, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+    }
+    
+    
+     result 
+    
+
+```
+
+
+
+### 6.3.1. Mean and associated confidence interval of the measurand, index of individuality (II) and the number of samples (n)
+```{r}
+
+      
+     result = res = analysisOfVarinceResults()
+      
+     if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+        
+        result =   DT::datatable(res$resultsOriginalGenderLme2$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      
+      
+       if(input$run && input$showResult == "cv"){
+        
+        result = DT::datatable(res$resultsCvAnovaGender2$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+
+       if(input$run && input$showResult == "transformBack"){
+        
+        result = DT::datatable(res$resultsTransformBackGenderLnLme2$CVresults[c(1:4,8,9)], extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      
+     result 
+    
+
+```
+
+
+### 6.3.2. Table 3: Analysis of variance table
+```{r}
+  
+       
+      res = analysisOfVarinceResults()
+      
+      if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+        
+        result = DT::datatable(res$resultsOriginalGenderLme2$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      
+       if(input$run && input$showResult == "cv"){
+
+        result = DT::datatable(res$resultsCvAnovaGender2$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+       if(input$run && input$showResult == "transformBack"){
+        
+        result = DT::datatable(res$resultsTransformBackGenderLnLme2$CVTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+     
+    result
+      
+
+```
+
+
+### 6.3.3. Table 4: Analytical performance specifications 
+```{r}
+
+     res = analysisOfVarinceResults()
+      
+      
+     if(input$run && (input$showResult == "original" || input$showResult == "lnTransformed")){
+        
+        result =  DT::datatable(res$resultsOriginalGenderLme2$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+       if(input$run && input$showResult == "cv"){
+        
+        result = DT::datatable(res$resultsCvAnovaGender2$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+       if(input$run && input$showResult == "transformBack"){
+        
+        result = DT::datatable(res$resultsTransformBackGenderLnLme2$errorTable, extensions = c('Buttons','KeyTable', 'Responsive'), options = list(           dom = 'Bfrtip',buttons = list('copy', 'print', list(extend = 'collection',           buttons = c('csv', 'excel', 'pdf'),text = 'Download')), keys = TRUE))
+      }
+      
+      
+    result
+      
+```
+
+# 7. Plots
+## Figure 1: Mean and absolute range plot before outlier detection
+```{r}
+
+    data = dataAnalysis()
+    data$replicate.subject = as.numeric(paste0(data[,input$replicate], data[,input$subject]))
+    
+    
+    names = c(input$subject, input$gender, input$time, input$replicate, "replicate.subject", input$analyte)
+    
+    
+    dataFull = data[,names]
+    names(dataFull)[6] = "value"
+    
+    dataFull = dataFull[complete.cases(dataFull),]
+    dataFull[dataFull$value <=0,"value"] = NA
+    
+    dataFull = dataFull[complete.cases(dataFull),]
+    
+    tbl = table(dataFull$subject)
+    
+    naSubject = tbl[!(tbl%%2==0)]
+    naSubject2 = as.numeric(names(naSubject))
+    
+    if(length(naSubject2) >0){
+      for(i in 1:length(naSubject2)){
+        
+        nas3 = dataFull[dataFull$subject == naSubject2[i],]
+        
+        tbl2 = table(nas3$time)
+        
+        nas4 = tbl2[!(tbl2%%2==0)]
+        nas5 = as.numeric(names(nas4))
+        
+        for(j in 1:length(nas5)){
+          
+          dataFull[dataFull[,input$subject] == naSubject2[i] & dataFull[,input$time] == nas5[j],"value"] = NA
+          
+          
+        }
+        
+      }
+      
+    }
+    
+    dataFull = dataFull[complete.cases(dataFull),]
+    
+    dataFull = dataFull[with(dataFull, order(eval(parse(text=input$gender)))), ]
+    
+    
+    
+    data_grp <- eval(substitute(group_by(dataFull, eval(parse(text=input$subject)))))
+    plotData <- dplyr::summarise(data_grp, N = n(), Mean = mean(value), Min = min(value), Max = max(value))
+    colnames(plotData)[1] = input$subject
+    
+    gender = as.data.frame(data_grp[,c(input$subject, input$gender)][!duplicated(data_grp[,c(input$subject, input$gender)]), ])
+    
+    plotData = merge(plotData, gender, by = input$subject)
+    
+    plotData[,input$subject] <- as.factor(plotData[,input$subject])
+    
+    plotData = plotData[with(plotData, order(eval(parse(text=input$gender)))), ]
+    
+    
+    p = ggplot(plotData, aes_string(y = "Mean", x =input$subject, color = input$gender)) +
+      geom_point() +
+      geom_errorbar(aes(ymax = Max, ymin = Min), width = 0.35) +
+      coord_flip() +
+      theme_bw(base_size = 14) +
+      ylab(input$analyte) +
+      xlab("Subjects")+
+      scale_x_discrete(limits=plotData[,input$subject])
+    
+    p
+    
+```
+
+## Figure 2: Mean and absolute range plot after step 1 outlier detection
+```{r}
+
+    data = outlierResults()[[5]]
+    
+    names = c(input$subject, input$gender, input$time, input$replicate, "replicate.subject", "value")
+    
+    
+    dataFull = data[,names]
+    
+    
+    data_grp <- eval(substitute(group_by(dataFull, eval(parse(text=input$subject)))))
+    plotData <- dplyr::summarise(data_grp, N = n(), Mean = mean(value), Min = min(value), Max = max(value))
+    colnames(plotData)[1] = input$subject
+    
+    gender = as.data.frame(data_grp[,c(input$subject, input$gender)][!duplicated(data_grp[,c(input$subject, input$gender)]), ])
+    
+    plotData = merge(plotData, gender, by = input$subject)
+    
+    plotData[,input$subject] <- as.factor(plotData[,input$subject])
+    
+    plotData = plotData[with(plotData, order(eval(parse(text=input$gender)))), ]
+    
+    
+    ggplot(plotData, aes_string(y = "Mean", x =input$subject, color = input$gender)) +
+      geom_point() +
+      geom_errorbar(aes(ymax = Max, ymin = Min), width = 0.35) +
+      coord_flip() +
+      theme_bw(base_size = 14) +
+      ylab(input$analyte) +
+      xlab("Subjects")+
+      scale_x_discrete(limits=plotData[,input$subject])
+```
+
+## Figure 3: Mean and absolute range plot after step 1 outlier detection
+```{r}
+ 
+      data = outlierResults()[[6]]
+      
+      names = c(input$subject, input$gender, input$time, input$replicate, "replicate.subject", "value")
+      
+      
+      dataFull = data[,names]
+      
+      
+      data_grp <- eval(substitute(group_by(dataFull, eval(parse(text=input$subject)))))
+      plotData <- dplyr::summarise(data_grp, N = n(), Mean = mean(value), Min = min(value), Max = max(value))
+      colnames(plotData)[1] = input$subject
+      
+      gender = as.data.frame(data_grp[,c(input$subject, input$gender)][!duplicated(data_grp[,c(input$subject, input$gender)]), ])
+      
+      plotData = merge(plotData, gender, by = input$subject)
+      
+      plotData[,input$subject] <- as.factor(plotData[,input$subject])
+      
+      plotData = plotData[with(plotData, order(eval(parse(text=input$gender)))), ]
+      
+      
+      ggplot(plotData, aes_string(y = "Mean", x =input$subject, color = input$gender)) +
+        geom_point() +
+        geom_errorbar(aes(ymax = Max, ymin = Min), width = 0.35) +
+        coord_flip() +
+        theme_bw(base_size = 14) +
+        ylab(input$analyte) +
+        xlab("Subjects")+
+        scale_x_discrete(limits=plotData[,input$subject]) 
+      
+      
+```
+
+## Figure 4: Mean and absolute range plot after step 3 outlier detection
+```{r}
+ data = outlierResults()[[4]]
+    
+    names(data) = c(input$subject, input$gender, input$time, input$replicate, "replicate.subject", "value")
+    
+    dataFull = data
+    
+    data_grp <- eval(substitute(group_by(dataFull, eval(parse(text=input$subject)))))
+    plotData <- dplyr::summarise(data_grp, N = n(), Mean = mean(value), Min = min(value), Max = max(value))
+    colnames(plotData)[1] = input$subject
+    
+    gender = as.data.frame(data_grp[,c(input$subject, input$gender)][!duplicated(data_grp[,c(input$subject, input$gender)]), ])
+    
+    plotData = merge(plotData, gender, by = input$subject)
+    
+    plotData[,input$subject] <- as.factor(plotData[,input$subject])
+    
+    plotData = plotData[with(plotData, order(eval(parse(text=input$gender)))), ]
+    
+    
+    ggplot(plotData, aes_string(y = "Mean", x =input$subject, color = input$gender)) +
+      geom_point() +
+      geom_errorbar(aes(ymax = Max, ymin = Min), width = 0.35) +
+      coord_flip() +
+      theme_bw(base_size = 14) +
+      ylab(input$analyte) +
+      xlab("Subjects")+
+      scale_x_discrete(limits=plotData[,input$subject])
+```

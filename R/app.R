@@ -12,7 +12,6 @@ library(plotly)
 library(htmltools)
 library(knitr)
 
-source("JQM_Function.R")
 source("fun_volcano.R")
 
 # Define UI for data upload app ----
@@ -83,8 +82,16 @@ ui <- fluidPage(
                                               label = "True empirical coverage",
                                               choices = c("\n", "85%", "90%",
                                                           "95%")),
+                                  
+                                  # select confounders
+                                  checkboxGroupInput("confound", 
+                                                     label = "Choose traits to be included in the estimation:",
+                                                     choices = c("Age" = "age",
+                                                                 "Sex" = "sex")),
+                                  
                                   actionButton("iri", "Compute IRI"),
-                                  actionButton("reset_iri", "Reset")
+                                  actionButton("reset_iri", "Reset"),
+                                  
                   ),
     ),
       
@@ -96,6 +103,7 @@ ui <- fluidPage(
         tabPanel("Manual",
                  h4("This workflow of Individual Reference Intervals (IRIs) estimation"),
                  HTML('<br/>'),
+                 HTML('<p> FInd our works <a href="http://dx.doi.org/10.1007/978-3-030-50423-6_35">here</a> and <a href="http://dx.doi.org/10.1016/j.jbi.2022.104111">here</a>.</p>'),
                  HTML('<p> This tool can be used to perform an IRI estimation for a particular biomarker/clinical test. To ensure the quality of the data, a trend and time analysis as a part of the data quality checks needs to be performed before computing the IRI. It includes: (i) outliers detection, (ii) testing for the presence of a monotonic trend, and (iii) individual variance checking.</p>'),
                  HTML('<p> In order to use this tool, load your data set using <em>Data Upload</em> tab. The data must be in a <em>wide format</em> and the first two columns should indicate the subject and time indices. As an example:</p>'),
                  HTML('<center><img src="image/data_upload_example.PNG" width = "100%"></center>'),
@@ -253,7 +261,10 @@ server <- function(session, input, output) {
   
   # read input variable choice 1
   data2 <- reactive({
-    df3 <- data1()[,-c(1:2)]
+    dat<-data1()
+    conf<-c("subject","time","age","sex")
+    p<-sum(colnames(dat)%in%conf)
+    df3 <- dat[,-c(1:p)]
     updateSelectInput(session,"series1",choices=colnames(df3))
     updateSelectInput(session,"series2",choices=colnames(df3))
     return(df3)    
@@ -269,14 +280,19 @@ server <- function(session, input, output) {
   
   # show data variable choice 1
   output$contents <- DT::renderDataTable({
-      df.show<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
-      colnames(df.show)<-c(names(data1())[1:2],as.character(input$series1))
+      conf<-c("subject","time","age","sex")
+      p<-sum(colnames(data1())%in%conf)
+      df.show<-cbind(data1()[,c(1:p)], data2()[,as.character(input$series1)])
+      colnames(df.show)<-c(names(data1())[1:p],as.character(input$series1))
       df.show
   })
   
   output$dataplot <- renderPlotly({
     if(input$run){
-      db<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
+      conf<-c("subject","time")
+      p<-which(colnames(data1())%in%conf)
+      
+      db<-cbind(data1()[,p], data2()[,as.character(input$series1)])
       colnames(db)<-c("subject","Time","y")
       db$Time<-as.factor(db$Time)
       
@@ -303,7 +319,10 @@ server <- function(session, input, output) {
   # read input mad - outlier data
   trend <- eventReactive(input$mad, {
     if(input$run){
-      db<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
+      conf<-c("subject","time")
+      p<-which(colnames(data1())%in%conf)
+      
+      db<-cbind(data1()[,p], data2()[,as.character(input$series1)])
       
       if(input$mad=="2"){
         trendsub(db=db, lim=2)
@@ -398,7 +417,10 @@ server <- function(session, input, output) {
   # read input mad - outlier data
   varcheck <- eventReactive(input$mad, {
     if(input$run){
-      db<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
+      conf<-c("subject","time")
+      p<-which(colnames(data1())%in%conf)
+      
+      db<-cbind(data1()[,p], data2()[,as.character(input$series1)])
       
       if(input$mad=="2"){
         varboot(db=db, lim=2)
@@ -429,7 +451,10 @@ server <- function(session, input, output) {
   # plot data vs variances
   output$plot.var<-renderPlotly({
     if(input$run){
-      db<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series1)])
+      conf<-c("subject","time")
+      p<-which(colnames(data1())%in%conf)
+      
+      db<-cbind(data1()[,p], data2()[,as.character(input$series1)])
       colnames(db)<-c("subject","time","y")
       db$time<-as.factor(db$time)
       g1<-ggplot(db)+
@@ -506,8 +531,10 @@ server <- function(session, input, output) {
   
   # read input IRI- JQM
   showplot<-eventReactive(input$iri, {
-    df<-cbind(data1()[,c(1:2)], data2()[,as.character(input$series2)])
-    colnames(df)<-c(names(data1())[1:2],as.character(input$series2))
+    conf<-c("subject","time")
+    p<-which(colnames(data1())%in%conf)
+    df<-cbind(data1()[,p], data2()[,as.character(input$series2)])
+    colnames(df)<-c(names(data1())[p],as.character(input$series2))
     df2<-df
     
     d1 <- trend()
@@ -541,20 +568,52 @@ server <- function(session, input, output) {
                    "85%" = 0.15,
                    "90%" = 0.1,
                    "95%" = 0.05)
+    
+    if((!"sex" %in% input$confound) & (!"age" %in% input$confound)){
+      df2a=df2
+      source("JQM_Function.R")
+    }else if(("age" %in% input$confound) & ("sex" %in% input$confound)){
+      df2a<-df2 %>% left_join(., data1()[,c("subject","time","age","sex")], by=c("subject","time"))
+      source("JQM_Function_160522_FE.R")
+    }else if(("age" %in% input$confound) & (!"sex" %in% input$confound)){
+      df2a<-df2 %>% left_join(., data1()[,c("subject","time","age")], by=c("subject","time"))
+      source("JQM_Function_160522_age.R")
+    }else if(("sex" %in% input$confound) & (!"age" %in% input$confound)){
+      df2a<-NULL
+    }
+
     #db=df3, if we want to exclude the last obs
-    res<-jqm(db=df2,
+    res<-jqm(db=df2a,
              alpha=alpha,
              lambda.u.seq = seq(0.02,0.1,0.02),
              lambda.z.seq = seq(0.5,5,0.5))
+    age<-NULL;sex<-NULL;cnt<-1
+    for (s in subjects) {
+      df2b<-df2a[df2a$subject==s,]
+      age[cnt]<-df2b$age[1]
+      sex[cnt]<-df2b$sex[1]
+      cnt<-cnt+1
+    }
+    
+    
     uz <- cbind.data.frame(res$u, res$z)
-    uz$low <- res$beta0 + res$u + res$z*res$beta1
-    uz$up  <- res$beta0 + res$u + res$z*res$beta2
+    if(length(age)==0 & length(sex)==0){
+      uz$low <- res$beta0 + res$u + res$z*res$beta1
+      uz$up  <- res$beta0 + res$u + res$z*res$beta2
+    }else if(length(age)!=0 & length(sex)==0){
+      uz$low <- res$beta0 + res$u + res$z*res$beta1 + res$beta3*age
+      uz$up  <- res$beta0 + res$u + res$z*res$beta2 + res$beta3*age
+    }else if(length(age)!=0 & length(sex)!=0){
+      uz$low <- res$beta0 + res$u + res$z*res$beta1 + res$beta3*age + res$beta4*sex
+      uz$up  <- res$beta0 + res$u + res$z*res$beta2 + res$beta3*age + res$beta4*sex
+    }
     uz$id <- unique(df2$subject)
     colnames(uz) <- c("u", "z", "low", "up","id")
     return(list(df=df,
            df2=df2,
            res=res,
-           uz=uz))
+           uz=uz,
+           inp=input$confound))
 
   })
 
@@ -565,6 +624,7 @@ server <- function(session, input, output) {
     df2<- .tmp$df2
     res<- .tmp$res
     uz<- .tmp$uz
+    inp<- .tmp$inp
     
     g1<-ggplot(uz, aes(x=as.factor(id))) +
       geom_errorbar(aes(ymin = low, ymax = up), color="darkblue", size=1) +
@@ -575,7 +635,7 @@ server <- function(session, input, output) {
       scale_color_manual(name="Outlying observation", labels=c("No","Yes","New measurement"), values = c("darkgrey","red", "darkgreen"))+
       labs(x="Participants",y="Measurement",
            title=paste0("IRI of ",names(df)[3]),
-           subtitle = paste0("Empirical coverage=",round(res$cov.tot, digits=4))) +
+           subtitle = paste0("Empirical coverage=",round(res$cov.tot, digits=4),", confounder: ",inp)) +
       theme_classic()+
       theme(legend.position = "right",
             axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust=1),
@@ -584,7 +644,8 @@ server <- function(session, input, output) {
             axis.title.y = element_text(size=15),
             axis.ticks = element_blank(),
             panel.border = element_rect(NA))
-    fig<-ggplotly(g1, tooltip = c("y"))
+    
+     fig<-ggplotly(g1, tooltip = c("y"))
 
   })
   

@@ -1,7 +1,15 @@
+library(tidyverse)
+`%notin%` <- Negate(`%in%`)
+library(Kendall)
+library(reshape2)
+
+
 volcano<-function(db,pct){
   subject<-unique(db$subject)
   db$time<-as.numeric(db$time)
   N<-length(subject)
+  conf<-c("subject","time","age","sex")
+  p<-sum(colnames(db)==conf)
   res<-data.frame(subject=0, variable=0, MK_Pval=0, MK_tau=0, spearman_Pval=0, spearman_rho=0, nr_obs=0)
   d.mad_subj<-list()
   i<-1; d.ik<-0
@@ -15,8 +23,8 @@ volcano<-function(db,pct){
     cor.rho<-NULL
     nr.obs<-NULL
     d.mad_prot<-list()
-    for (j in 1:(ncol(d.i)-2)) {
-      d.ij<-d.i[,c(1:2,j+2)]
+    for (j in 1:(ncol(d.i)-p)) {
+      d.ij<-d.i[,c(1:2,j+p)]
       out.mad<-which(d.ij[,3]>median(d.ij[,3])+2.3*mad(d.ij[,3]) | d.ij[,3]<median(d.ij[,3])-2.3*mad(d.ij[,3]))
       
       if(length(out.mad)!=0){
@@ -54,7 +62,7 @@ volcano<-function(db,pct){
       d.ik<-rbind(d.ik,d.ij[,-3]) # all outliers data
     }
     mk.res<-data.frame(subject=rep(unique(d.i$subject),length(mk.p)),
-                       variable=names(d.i)[3:ncol(d.i)], MK_Pval=mk.p, MK_tau=mk.tau, 
+                       variable=names(d.i)[(p+1):ncol(d.i)], MK_Pval=mk.p, MK_tau=mk.tau, 
                        spearman_Pval=sp.cor, spearman_rho=cor.rho, nr_obs=nr.obs)
     res<-rbind(res,mk.res)
     d.mad_subj[[i]]<-bind_rows(d.mad_prot)
