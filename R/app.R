@@ -13,111 +13,178 @@ library(htmltools)
 library(knitr)
 
 source("fun_volcano.R")
+source("icons.R")
 
-# Define UI for data upload app ----
-ui <- fluidPage(
-  useShinyjs(),
-  # App title ----
-  headerPanel("Individual Reference Intervals estimation workflow v.1.0"),
+home <- tabPanel(
+  title = "home",
+  value = "home",
+  div(
+    class = "hero",
+    HTML("<h1 class='hero-title'>Individual Reference Intervals App</h1>"),
+    HTML("<p class='hero-desc'>An easy tool to build reference intervals based on individual biomarkers.</p>"),
+  ),
+  div(
+    class = "home-menu-container", 
+      div(
+        class = "home-menu",
+        actionLink(
+          "menu_user_manual",
+          HTML(
+            paste0(
+              "<span class='home-menu-item home-menu-item--manual'>",
+              icon.file,
+              "<span>User Manual</span>",
+              "</span>"
+            )
+          )
+        ),
+        actionLink(
+          "menu_analysis",
+          HTML(
+            paste0(
+              "<span class='home-menu-item home-menu-item--analysis'>",             
+              icon.activity,
+              "<span>Analysis</span>",
+              "</span>"
+            )
+          )
+        )
+      )
+  ),
+  div(
+    class = "highlights",
+    HTML(paste0(
+      "<article class='highlight'>",
+      "<h2>Approachable</h2>",
+      "<p>Builds on top of standard HTML, CSS and JavaScript with intuitive API and world-class documentation.</p>",
+      "</article>"
+    )),
+    HTML(paste0(
+      "<article class='highlight'>",
+      "<h2>Performant</h2>",
+      "<p>Truly reactive, compiler-optimized rendering system that rarely requires manual optimization.</p>",
+      "</article>"
+    )),
+    HTML(paste0(
+      "<article class='highlight'>",
+      "<h2>Versatile</h2>",
+      "<p>A rich, incrementally adoptable ecosystem that scales between a library and a full-featured framework.</p>",
+      "</article>"
+    ))
+  ),
+  div(
+    class = "sponsors-container",
+    HTML("<h2>Affilated with</h2>"),
+    div(
+      class = "sponsors",
+      HTML(paste0(
+        "<a class='sponsor' href='https://www.uhasselt.be/en/instituten-en/dsi' target='_blank' rel='noopener noreferrer'>",
+        "<img src='image/dsi_logo.png' alt='Data Science Institute UHasselt Logo'>",
+        "</a>" 
+      )),
+      HTML(paste0(
+        "<a class='sponsor' href='https://vito.be/en' target='_blank' rel='noopener noreferrer'>",
+        "<img src='image/vito_logo.png' alt='Vito Logo'>",
+        "</a>"      
+      ))
+    )
+  )
+)
 
-  # Sidebar layout with input and output definitions ----
+user_manual <- tabPanel(
+  title = "user manual",
+  value = "user_manual",
+  column(width = 12,
+         wellPanel(
+           HTML("<h2>Individual Reference Intervals (IRIs) estimation app</h2>"),
+           HTML('<br/>'),
+           HTML('<p> Find our works <a href="http://dx.doi.org/10.1007/978-3-030-50423-6_35">here</a> and <a href="http://dx.doi.org/10.1016/j.jbi.2022.104111">here</a>.</p>'),
+           HTML('<p> This tool can be used to perform an IRI estimation for a particular biomarker/clinical test. To ensure the quality of the data, a trend and time analysis as a part of the data quality checks needs to be performed before computing the IRI. It includes: (i) outliers detection, (ii) testing for the presence of a monotonic trend, and (iii) individual variance checking.</p>'),
+           HTML('<p> In order to use this tool, load your data set using <em>Data Upload</em> tab. The data must be in a <em>wide format</em> and the first two columns should indicate the subject and time indices. As an example:</p>'),
+           HTML('<center><img src="image/data_upload_example.PNG" width = "100%"></center>'),
+           HTML('<p> An overview of trends and correlations for all biomarkers is presented in the <em>Volcano Plot</em> tab.</p>'),
+           HTML('<br/>'),
+           HTML('<p> In the <em> Trend & Time Analysis</em>, you can choose a biomarker/clinical test that will be examined. An outlier threshold should also be chosen, the default is 2.3 which corresponds to the 99th and 1st percentile threshold.</p>'),
+           HTML('<br/>'),
+           HTML('<p> After all the step in the <em>Trend & Time Analysis</em> has been performed, the IRI can be computed in the <em>IRI Estimation</em> tab. Subjects with significant monotonic trends, high correlations with time, and dissimilar variances are marked and will be excluded from the IRI estimation. An example of estimated IRIs:</p>'),
+           HTML('<center><img src="image/iri_example.PNG" width = "100%"></center>'),
+           HTML('<p> For each individual, the IRIs are indicated by the blue error bars. They were estimated by the previous/historical measurements indicated by the grey and the red dots, and are designed to interpret the new or future measurements i.e. the green dots.</p>'),
+           HTML('<br/>')
+        )
+    ) 
+)
+
+analysis <- tabPanel(
+  title = "analysis",
+  value = "analysis",
   sidebarLayout(
-    # Sidebar panel for inputs ----
-    sidebarPanel(width=3,
-
-                 conditionalPanel(condition="input.tabs1=='Data Upload'",
-                                  id="data_input",
-                                  fileInput("file1", "Choose CSV file", multiple = FALSE,
-                                            accept = c("text/csv","text/comma-separated-values,text/plain",".csv"),
-                                            width = NULL, buttonLabel = "Browse...",
-                                            placeholder = "No file selected"),
-                                  # Horizontal line ----
-                                  tags$hr(),
-                                  
-                                  # Input: Checkbox if file has header ----
-                                  checkboxInput("header", "Header", TRUE),
-                                  # Input: Select separator ----
-                                  radioButtons("sep", "Separator",
-                                               choices = c(Comma = ",",
-                                                           Semicolon = ";",
-                                                           Tab = "\t"),
-                                               selected = ","),
-                                  # Input: Select quotes ----
-                                  radioButtons("quote", "Quote",
-                                               choices = c(None = "",
-                                                           "Double Quote" = '"',
-                                                           "Single Quote" = "'"),
-                                               selected = '"'),
-                                  # Horizontal line ----
-                                  tags$hr(),
-                                  # Input: Checkbox if the sample data will be used ----
-                                  checkboxInput("sample_data", "Use sample data", FALSE),
-                                  actionButton("reset_data", "Reset Data")
+  # Sidebar panel for inputs ----
+  sidebarPanel(width=3,
+               conditionalPanel(condition="input.tabs1=='Data Upload'",
+                                id="data_input",
+                                fileInput("file1", "Choose CSV file", multiple = FALSE,
+                                          accept = c("text/csv","text/comma-separated-values,text/plain",".csv"),
+                                          width = NULL, buttonLabel = "Browse...",
+                                          placeholder = "No file selected"),
+                                # Horizontal line ----
+                                tags$hr(),
+                                # Input: Checkbox if file has header ----
+                                checkboxInput("header", "Header", TRUE),
+                                # Input: Select separator ----
+                                radioButtons("sep", "Separator",
+                                             choices = c(Comma = ",",
+                                                         Semicolon = ";",
+                                                         Tab = "\t"),
+                                             selected = ","),
+                                # Input: Select quotes ----
+                                radioButtons("quote", "Quote",
+                                             choices = c(None = "",
+                                                         "Double Quote" = '"',
+                                                         "Single Quote" = "'"),
+                                             selected = '"'),
+                                # Horizontal line ----
+                                tags$hr(),
+                                # Input: Checkbox if the sample data will be used ----
+                                checkboxInput("sample_data", "Use sample data", FALSE),
+                                actionButton("reset_data", "Reset Data")
                                   
                  ),
                  conditionalPanel(condition="input.tabs1=='Trend & Time Analysis'",
                                   #shinyjs::useShinyjs(),
                                   id = "trend1",
                                   selectInput("series1", "Choose a variable:", choices=c()),
-
                                   # Horizontal line ----
                                   tags$hr(),
-                                  
                                   selectInput("mad", "Choose an outlier threshold:", choices=c("\n", "2","2.3")),
-                                  
                                   actionButton(inputId = "run",  label = "Run Analysis", icon = icon("play", lib = "glyphicon")),
                                   actionButton("reset_trend", "Reset")
                                   
                  ),
-                 
                  conditionalPanel(condition="input.tabs1=='RI Estimation'",
                                   id = "iri1",
                                   selectInput("series2", "Choose a variable:", choices=c()),
-                                  
                                   # Horizontal line ----
                                   tags$hr(),
-                                  
                                   # numeric input for alpha
                                   selectInput("empcov",
                                               label = "True empirical coverage",
                                               choices = c("\n", "85%", "90%",
                                                           "95%")),
-                                  
                                   # select confounders
                                   checkboxGroupInput("confound", 
                                                      label = "Choose traits to be included in the estimation:",
                                                      choices = c("Age" = "age",
                                                                  "Sex" = "sex")),
-                                  
                                   actionButton("iri", "Compute IRI"),
                                   actionButton("reset_iri", "Reset"),
                                   
                   ),
     ),
-      
-
     
     # Main panel for displaying outputs ----
     mainPanel(
+      width = 9,
       tabsetPanel(
-        tabPanel("Manual",
-                 h4("This workflow of Individual Reference Intervals (IRIs) estimation"),
-                 HTML('<br/>'),
-                 HTML('<p> FInd our works <a href="http://dx.doi.org/10.1007/978-3-030-50423-6_35">here</a> and <a href="http://dx.doi.org/10.1016/j.jbi.2022.104111">here</a>.</p>'),
-                 HTML('<p> This tool can be used to perform an IRI estimation for a particular biomarker/clinical test. To ensure the quality of the data, a trend and time analysis as a part of the data quality checks needs to be performed before computing the IRI. It includes: (i) outliers detection, (ii) testing for the presence of a monotonic trend, and (iii) individual variance checking.</p>'),
-                 HTML('<p> In order to use this tool, load your data set using <em>Data Upload</em> tab. The data must be in a <em>wide format</em> and the first two columns should indicate the subject and time indices. As an example:</p>'),
-                 HTML('<center><img src="image/data_upload_example.PNG" width = "100%"></center>'),
-                 
-                 HTML('<p> An overview of trends and correlations for all biomarkers is presented in the <em>Volcano Plot</em> tab.</p>'),
-                 HTML('<br/>'),
-                 HTML('<p> In the <em> Trend & Time Analysis</em>, you can choose a biomarker/clinical test that will be examined. An outlier threshold should also be chosen, the default is 2.3 which corresponds to the 99th and 1st percentile threshold.</p>'),
-                 HTML('<br/>'),
-                 HTML('<p> After all the step in the <em>Trend & Time Analysis</em> has been performed, the IRI can be computed in the <em>IRI Estimation</em> tab. Subjects with significant monotonic trends, high correlations with time, and dissimilar variances are marked and will be excluded from the IRI estimation. An example of estimated IRIs:</p>'),
-                 HTML('<center><img src="image/iri_example.PNG" width = "100%"></center>'),
-                 HTML('<p> For each individual, the IRIs are indicated by the blue error bars. They were estimated by the previous/historical measurements indicated by the grey and the red dots, and are designed to interpret the new or future measurements i.e. the green dots.</p>'),
-                 HTML('<br/>')
-        ),
-        
         tabPanel("Data Upload",
         navbarPage(
           title = '',
@@ -177,8 +244,40 @@ ui <- fluidPage(
   )
 )
 
+# Define UI for data upload app ----
+ui <- fluidPage(
+  useShinyjs(),
+  # App title ----
+  # headerPanel("Individual Reference Intervals estimation workflow v.1.0"),
+  tags$head(
+    tags$link(rel="stylesheet", type = "text/css",
+              href = "https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700;900&display=swap")
+  ),
+  div(
+    class = "main",
+    navbarPage(
+      title = "IRI App v.1.0",
+      id = "main_navbar",
+      theme = "style.css",
+      fluid = T,
+      home,
+      user_manual,
+      analysis
+    )
+  )
+)
+
 # Define server logic to read selected file ----
 server <- function(session, input, output) {
+  # For handling click on menu homepage
+  observeEvent(input$menu_user_manual, {
+    message('shit')
+    updateTabsetPanel(session, "main_navbar", selected = "user_manual")
+  })
+  observeEvent(input$menu_analysis,{
+    updateTabsetPanel(session, "main_navbar", selected = "analysis")
+  })
+  
   # read uploaded data
   data1 <- reactive({
     if(input$sample_data==TRUE){
