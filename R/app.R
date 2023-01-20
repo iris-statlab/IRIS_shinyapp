@@ -21,7 +21,7 @@ home <- tabPanel(
   div(
     class = "hero",
     HTML("<h1 class='hero-title'>Individual Reference Intervals App</h1>"),
-    HTML("<p class='hero-desc'>An easy tool to build reference intervals based on individual biomarkers.</p>"),
+    HTML("<p class='hero-desc'>An easy tool to build individual reference intervals based on biomarker's longitudinal data.</p>"),
   ),
   div(
     class = "home-menu-container", 
@@ -55,20 +55,20 @@ home <- tabPanel(
     class = "highlights",
     HTML(paste0(
       "<article class='highlight'>",
-      "<h2>Approachable</h2>",
-      "<p>Builds on top of standard HTML, CSS and JavaScript with intuitive API and world-class documentation.</p>",
+      "<h2>Personalised</h2>",
+      "<p>A novel instrument for interpreting lab test results following personal biomarker signatures.</p>",
       "</article>"
     )),
     HTML(paste0(
       "<article class='highlight'>",
-      "<h2>Performant</h2>",
-      "<p>Truly reactive, compiler-optimized rendering system that rarely requires manual optimization.</p>",
+      "<h2>Precise</h2>",
+      "<p>Provides essential assistance in early disease detection by uncovering small deviations of test results.</p>",
       "</article>"
     )),
     HTML(paste0(
       "<article class='highlight'>",
       "<h2>Versatile</h2>",
-      "<p>A rich, incrementally adoptable ecosystem that scales between a library and a full-featured framework.</p>",
+      "<p>Acommodates small subject sample sizes in small time series data.</p>",
       "</article>"
     ))
   ),
@@ -96,19 +96,37 @@ user_manual <- tabPanel(
   value = "user_manual",
   column(width = 12,
          wellPanel(
-           HTML("<h2>Individual Reference Intervals (IRIs) estimation app</h2>"),
+           HTML("<h1>Individual Reference Intervals (IRIs) estimation app</h1>"),
            HTML('<br/>'),
-           HTML('<p> Find our works <a href="http://dx.doi.org/10.1007/978-3-030-50423-6_35">here</a> and <a href="http://dx.doi.org/10.1016/j.jbi.2022.104111">here</a>.</p>'),
-           HTML('<p> This tool can be used to perform an IRI estimation for a particular biomarker/clinical test. To ensure the quality of the data, a trend and time analysis as a part of the data quality checks needs to be performed before computing the IRI. It includes: (i) outliers detection, (ii) testing for the presence of a monotonic trend, and (iii) individual variance checking.</p>'),
-           HTML('<p> In order to use this tool, load your data set using <em>Data Upload</em> tab. The data must be in a <em>wide format</em> and the first two columns should indicate the subject and time indices. As an example:</p>'),
-           HTML('<center><img src="image/data_upload_example.PNG" width = "100%"></center>'),
-           HTML('<p> An overview of trends and correlations for all biomarkers is presented in the <em>Volcano Plot</em> tab.</p>'),
-           HTML('<br/>'),
-           HTML('<p> In the <em> Trend & Time Analysis</em>, you can choose a biomarker/clinical test that will be examined. An outlier threshold should also be chosen, the default is 2.3 which corresponds to the 99th and 1st percentile threshold.</p>'),
-           HTML('<br/>'),
-           HTML('<p> After all the step in the <em>Trend & Time Analysis</em> has been performed, the IRI can be computed in the <em>IRI Estimation</em> tab. Subjects with significant monotonic trends, high correlations with time, and dissimilar variances are marked and will be excluded from the IRI estimation. An example of estimated IRIs:</p>'),
-           HTML('<center><img src="image/iri_example.PNG" width = "100%"></center>'),
-           HTML('<p> For each individual, the IRIs are indicated by the blue error bars. They were estimated by the previous/historical measurements indicated by the grey and the red dots, and are designed to interpret the new or future measurements i.e. the green dots.</p>'),
+           HTML('<center><img src="image/iri_do.svg" width = "85%"></center>'),
+           HTML('<h3> This tool can be used to perform an IRI estimation for a particular biomarker/clinical test. 
+           Instead of giving one reference interval of one biomarker, like the conventional methods, 
+           <strong>IRIs provide subject-specific reference intervals, more precise than PRI.</strong></h3>'),
+           HTML('<hr/>'),
+           
+           HTML("<h1>What you need:</h1>"),
+           HTML('<center><img src="image/iri_need.svg" width = "50%"></center>'),
+           HTML('<hr/>'),
+           
+           HTML("<h2>A pipeline will be run before estimating the IRI</h2>"),
+           HTML('<center><img src="image/iris_pipeline.svg" width = "85%"></center>'),
+           
+           HTML('<hr/>'),
+           HTML("<h2>Data upload procedures:</h2>"),
+           HTML('<h3> In order to use this tool, load your data set using <em>Analysis > Data Upload</em> tab. </h3>'),
+           HTML('<h3> The data must be in a <em>wide format</em> and the first two columns should indicate the <code>subject</code> and <code>time</code> indices. As an example:</h3>'),
+           HTML('<center><img src="image/data_upload_example.PNG" width = "85%"></center>'),
+           HTML('<h3> An overview of trends and correlations for all biomarkers is presented in the <em>Volcano Plot</em> tab.</h3>'),
+           HTML('<hr/>'),
+           HTML('<h3> You can continue the analysis by selecting a feature/biomarker in the <em> Trend & Time Analysis</em>.
+                This feature will be carried out in the next steps until finally the IRIs are computed for eligible subjects.</h3>'),
+           HTML('<h3> An example of estimated IRIs after leaving the pipeline:</h3>'),
+           HTML('<center><img src="image/iri_hdl.svg" width = "85%"></center>'),
+           HTML('<h3> For each individual, the IRIs are indicated by the <font color="darkblue"><b> blue error bars</b></font> . 
+                They were estimated from the previous/historical measurements indicated by the full circles. The 
+                <font color="red"> red circles </font> refer to outlying observations (included in the estimation).</h3>'),
+           HTML('<h3> These IRIs are designed <b> to interpret the new test results or the future measurements </b> of each subject. </h3>'),
+           HTML('<h3> The data quality check results as well as the IRI estimates can be retrieved by clicking the <code>Download report</code> button. </h3>'),
            HTML('<br/>')
         )
     ) 
