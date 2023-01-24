@@ -15,6 +15,18 @@ library(knitr)
 source("fun_volcano.R")
 source("icons.R")
 
+link_publications <- "https://www.google.com"
+link_repo <- "https://github.com/iris-statlab/IRIS_shinyapp"
+
+jscode <- paste0(
+  "var linkPublications = \"", link_publications, "\";",
+  "var linkRepo = \"", link_repo, "\";",
+  "$(document).ready(function(){",
+  "$('a[data-value=\"link_publications\"]').click(function(){window.location.href = linkPublications});", 
+  "$('a[data-value=\"link_repo\"]').click(function(){window.location.href = linkRepo});", 
+  "});"
+)
+
 home <- tabPanel(
   title = "home",
   value = "home",
@@ -269,7 +281,8 @@ ui <- fluidPage(
   # headerPanel("Individual Reference Intervals estimation workflow v.1.0"),
   tags$head(
     tags$link(rel="stylesheet", type = "text/css",
-              href = "https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700;900&display=swap")
+              href = "https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700;900&display=swap"),
+    tags$script(jscode)
   ),
   div(
     class = "main",
@@ -280,7 +293,9 @@ ui <- fluidPage(
       fluid = T,
       home,
       user_manual,
-      analysis
+      analysis,
+      tabPanel(title = "Publications", value = "link_publications", icon = icon("external-link", class = "fa-pull-right")),
+      tabPanel(title = "", value = "link_repo", icon = icon("github"))
     )
   )
 )
@@ -289,7 +304,6 @@ ui <- fluidPage(
 server <- function(session, input, output) {
   # For handling click on menu homepage
   observeEvent(input$menu_user_manual, {
-    message('shit')
     updateTabsetPanel(session, "main_navbar", selected = "user_manual")
   })
   observeEvent(input$menu_analysis,{

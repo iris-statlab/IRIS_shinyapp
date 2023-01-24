@@ -3,6 +3,7 @@
   --color-stone-200: rgb(231 229 228);
   --color-stone-500: rgb(120 113 108);
 }
+
 /* hero styling */
 .hero {
   padding: 6.5rem 2.5rem 2rem;
@@ -35,6 +36,7 @@ body > .container-fluid {
   position: sticky;  
   top: 0;
   z-index: 9999;
+  font-size: 1.5rem;
 }
 
 .main > .navbar > .container-fluid {
@@ -51,7 +53,19 @@ body > .container-fluid {
 }
 
 .main > .navbar > .container-fluid > .navbar-nav  a {
+  display: inline-flex;
   text-transform: capitalize;
+}
+
+.main > .navbar > .container-fluid > .navbar-nav  a[data-value="link_publications"] {
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  gap: .25rem;
+}
+
+.main > .navbar > .container-fluid > .navbar-nav  .fa-github {
+  font-size: 2rem;
 }
 
 /* home-menu styling */
