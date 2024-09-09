@@ -15,7 +15,7 @@ library(knitr)
 source("fun_volcano.R")
 source("icons.R")
 
-link_publications <- "https://www.google.com"
+link_publications <- "https://publicationslist.org/m.pusparum"
 link_repo <- "https://github.com/iris-statlab/IRIS_shinyapp"
 
 jscode <- paste0(
@@ -258,6 +258,7 @@ analysis <- tabPanel(
                    tabPanel('Compute IRI',
                             h3(textOutput(outputId = "sub.out")),
                             DT::dataTableOutput("excsub_all"),
+                            h4(textOutput(outputId = "covariates")),
                             h4(textOutput(outputId = "choose.sub")),
                             plotlyOutput("plot") %>% withSpinner(color="#0dc5c1"),
                             # actionButton("submit", "Submit report"),
@@ -478,12 +479,12 @@ server <- function(session, input, output) {
       d2<-d$df2
       trend<-td()
       d.out<-trend$d.out
-      d2<-d2 %>% left_join(., d.out[,c(1:2,ncol(d.out),ncol(d.out)-1)], by=c("subject","time"))
+      d2<-d2 %>% left_join(., d.out[,c(1:2,ncol(d.out),ncol(d.out)-1)], by=c("subject","time2"="time"))
       d2$pct<-round(d2$pct*100, digits = 2)
       d2<-rename(d2, Percentage_vars_with_outliers=pct)
       
-      d2$time<-as.factor(d2$time)
-      p<-ggplot(d2, aes(x=time, color=time))+
+      d2$time2<-as.factor(d2$time2)
+      p<-ggplot(d2, aes(x=time2, color=time2))+
         geom_point(aes(y=y,size=Percentage_vars_with_outliers))+
         scale_colour_viridis(discrete = T)+
         geom_hline(data=d$d_mad, aes(yintercept = mad_up), color="red")+
@@ -522,8 +523,8 @@ server <- function(session, input, output) {
   output$plot.trend<-renderPlotly({
     if(input$run){
       d <- trend()      
-      d$df3$time<-as.factor(d$df3$time)
-      p<-ggplot(d$df3, aes(x=time, color=time))+
+      d$df3$time2<-as.factor(d$df3$time2)
+      p<-ggplot(d$df3, aes(x=time2, color=time2))+
         geom_point(aes(y=y), size=4)+
         scale_colour_viridis(discrete = T)+
         geom_hline(data=d$d_mad3, aes(yintercept = mad_up), color="red")+
@@ -659,6 +660,17 @@ server <- function(session, input, output) {
     shinyjs::reset("iri1")
   })
   
+  # text output variance
+  output$covariates <- renderText({
+    inc_conf<-colnames(data1())
+    if(("sex" %in% inc_conf) & ("age" %in% inc_conf)){
+      paste0("Age and Sex variables are included in the data")
+    }else if(("sex" %in% inc_conf) & (!"age" %in% inc_conf)){
+      paste0("Only Sex variable is included in the data")
+    }else if((!"sex" %in% inc_conf) & ("age" %in% inc_conf)){
+      paste0("Only Age variable is included in the data")
+    }else{paste0("Both Age and Sex variables are NOT included in the data")}
+  })
   
   # read input IRI- JQM
   showplot<-eventReactive(input$iri, {
@@ -667,6 +679,11 @@ server <- function(session, input, output) {
     df<-cbind(data1()[,p], data2()[,as.character(input$series2)])
     colnames(df)<-c(names(data1())[p],as.character(input$series2))
     df2<-df
+    df2<-sort_data_by_time(df2, "time")
+    df2<-df2 %>%
+      group_by(subject) %>%
+      mutate(time = seq(1, n()))
+    df2<-as.data.frame(df2)
     
     d1 <- trend()
     d2 <- varcheck()
